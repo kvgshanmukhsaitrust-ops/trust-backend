@@ -1,0 +1,103 @@
+package com.trustplatform.auth;
+
+import com.trustplatform.security.JwtService;
+import com.trustplatform.user.Role;
+import com.trustplatform.user.User;
+import com.trustplatform.user.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final RefreshTokenService refreshTokenService;
+    private final EmailVerificationService emailVerificationService;
+
+    // 🔹 REGISTER
+    public AuthenticationResponse register(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already registered");
+        }
+
+        String fullName = request.getFullName();
+        if (fullName == null || fullName.trim().isEmpty()) {
+            fullName = request.getEmail();
+        }
+
+        User user = User.builder()
+                .fullName(fullName)
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.USER)
+                .isActive(false) // must verify email first
+                .build();
+
+        userRepository.save(user);
+        emailVerificationService.sendVerificationEmail(user);
+
+        return AuthenticationResponse.builder()
+                .token(null)
+                .refreshToken(null)
+                .build();
+    }
+
+    // 🔹 LOGIN - Updated to include UserDto for frontend AppContext
+    public AuthenticationResponse login(AuthenticationRequest request) {
+        // 1. Authenticate credentials via Spring Security
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()));
+
+        // 2. Load user and check activation status
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.isActive()) {
+            throw new RuntimeException("Email not verified");
+        }
+
+        // 3. Generate tokens
+        String accessToken = jwtService.generateToken(user.getEmail());
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        // 4. Return response with nested UserDto to fix frontend redirect logic
+        return AuthenticationResponse.builder()
+                .token(accessToken)
+                .refreshToken(refreshToken.getToken())
+                .user(AuthenticationResponse.UserDto.builder()
+                        .name(user.getFullName())
+                        .email(user.getEmail())
+                        .role(user.getRole().name())
+                        .build())
+                .build();
+    }
+
+    // 🔹 REFRESH TOKEN
+    public AuthenticationResponse refreshToken(RefreshTokenRequest request) {
+        RefreshToken existingToken = refreshTokenService.verifyRefreshToken(request.getRefreshToken());
+        User user = existingToken.getUser();
+
+        String newAccessToken = jwtService.generateToken(user.getEmail());
+        refreshTokenService.revokeToken(existingToken);
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        return AuthenticationResponse.builder()
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken.getToken())
+                .user(AuthenticationResponse.UserDto.builder()
+                        .name(user.getFullName())
+                        .email(user.getEmail())
+                        .role(user.getRole().name())
+                        .build())
+                .build();
+    }
+}

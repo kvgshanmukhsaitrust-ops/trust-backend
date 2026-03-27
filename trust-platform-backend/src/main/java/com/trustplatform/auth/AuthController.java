@@ -1,0 +1,77 @@
+package com.trustplatform.auth;
+
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @Value("${app.jwt.expiration:900000}")
+    private long accessTokenExpirationMs;
+
+    @Value("${app.cookie.secure:false}")
+    private boolean secureCookie;
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthenticationResponse> register(
+            @Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthenticationResponse> login(
+            @Valid @RequestBody AuthenticationRequest request,
+            HttpServletResponse response) {
+        AuthenticationResponse auth = authService.login(request);
+        if (auth.getToken() != null) setCookie(response, auth.getToken());
+        return ResponseEntity.ok(auth);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthenticationResponse> refresh(
+            @RequestBody RefreshTokenRequest request,
+            HttpServletResponse response) {
+        AuthenticationResponse auth = authService.refreshToken(request);
+        if (auth.getToken() != null) setCookie(response, auth.getToken());
+        return ResponseEntity.ok(auth);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(
+            @RequestBody(required = false) RefreshTokenRequest request,
+            HttpServletResponse response) {
+        if (request != null && request.getRefreshToken() != null) {
+            authService.logout(request.getRefreshToken());
+        }
+        clearCookie(response);
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+    }
+
+    private void setCookie(HttpServletResponse response, String token) {
+        String cookie = String.format(
+            "access_token=%s; Max-Age=%d; Path=/api; HttpOnly; %s SameSite=Strict",
+            token,
+            (int)(accessTokenExpirationMs / 1000),
+            secureCookie ? "Secure;" : "");
+        response.addHeader("Set-Cookie", cookie);
+    }
+
+    private void clearCookie(HttpServletResponse response) {
+        String cookie = String.format(
+            "access_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Strict",
+            secureCookie ? "Secure;" : "");
+        response.addHeader("Set-Cookie", cookie);
+    }
+}

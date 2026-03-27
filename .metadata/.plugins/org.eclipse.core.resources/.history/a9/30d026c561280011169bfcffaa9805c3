@@ -1,0 +1,5 @@
+package com.trustplatform.security;
+
+public class RateLimitingFilter {
+
+}

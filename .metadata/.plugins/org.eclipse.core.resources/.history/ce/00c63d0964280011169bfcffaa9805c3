@@ -1,0 +1,52 @@
+package com.trustplatform.impact;
+
+import com.trustplatform.impact.dto.ImpactStatResponse;
+import com.trustplatform.exception.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ImpactStatService {
+
+    private final ImpactStatRepository impactStatRepository;
+
+    @Cacheable(value = "impact-stats", key = "'all'")
+    @Transactional(readOnly = true)
+    public List<ImpactStatResponse> getAllStats() {
+        log.debug("Cache miss — loading impact stats from DB");
+        return impactStatRepository.findAll().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @CacheEvict(value = "impact-stats", allEntries = true)
+    @Transactional
+    public ImpactStatResponse update(Long id, Long newValue) {
+        ImpactStat stat = impactStatRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Stat not found: " + id));
+        log.info("Impact stat updated: id={}, category={}, old={}, new={}",
+                id, stat.getCategory(), stat.getCurrentValue(), newValue);
+        stat.setCurrentValue(newValue);
+        return toResponse(impactStatRepository.save(stat));
+    }
+
+    private ImpactStatResponse toResponse(ImpactStat s) {
+        return ImpactStatResponse.builder()
+                .id(s.getId())
+                .category(s.getCategory())
+                .currentValue(s.getCurrentValue())
+                .unit(s.getUnit())
+                .icon(s.getIcon())
+                .build();
+    }
+}

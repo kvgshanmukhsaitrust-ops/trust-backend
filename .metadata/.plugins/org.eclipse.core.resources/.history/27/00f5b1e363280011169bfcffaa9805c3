@@ -1,0 +1,140 @@
+package com.trustplatform.volunteer;
+
+import com.trustplatform.event.Event;
+import com.trustplatform.event.EventRepository;
+import com.trustplatform.user.User;
+import com.trustplatform.user.UserRepository;
+import com.trustplatform.volunteer.dto.ApplyVolunteerRequest;
+import com.trustplatform.volunteer.dto.VolunteerResponse;
+import com.trustplatform.exception.ResourceNotFoundException;
+import com.trustplatform.exception.BadRequestException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class VolunteerService {
+
+    private final VolunteerRepository volunteerRepository;
+    private final EventRepository eventRepository;
+    private final UserRepository userRepository;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    // ============================
+    // APPLY FOR EVENT
+    // ============================
+    public VolunteerResponse applyForEvent(ApplyVolunteerRequest request) {
+        // 1. Get current logged-in user from Security Context
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // 2. Get event details
+        Event event = eventRepository.findById(request.getEventId())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        // 3. Prevent duplicate applications
+        if (volunteerRepository.existsByUserIdAndEventId(user.getId(), event.getId())) {
+            throw new BadRequestException("You have already applied for this event");
+        }
+
+        // 4. Create and save the application
+        VolunteerApplication application = VolunteerApplication.builder()
+                .user(user)
+                .event(event)
+                .message(request.getMessage())
+                .status(VolunteerStatus.PENDING)
+                .build();
+
+        volunteerRepository.save(application);
+
+        return mapToResponse(application);
+    }
+
+    // ============================
+    // APPROVE VOLUNTEER
+    // ============================
+    public void approveVolunteer(Long id) {
+        VolunteerApplication application = volunteerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+
+        application.setStatus(VolunteerStatus.APPROVED);
+        volunteerRepository.save(application);
+
+        // Trigger notification email
+        sendStatusEmail(application, "APPROVED");
+    }
+
+    // ============================
+    // REJECT VOLUNTEER
+    // ============================
+    public void rejectVolunteer(Long id) {
+        VolunteerApplication application = volunteerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found"));
+
+        application.setStatus(VolunteerStatus.REJECTED);
+        volunteerRepository.save(application);
+
+        // Trigger notification email
+        sendStatusEmail(application, "REJECTED");
+    }
+
+    // ============================
+    // GET ALL APPLICATIONS
+    // ============================
+    public List<VolunteerResponse> getAllApplications() {
+        // Fetch all applications and map to DTOs for the Admin Dashboard
+        return volunteerRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ============================
+    // EMAIL NOTIFICATION LOGIC
+    // ============================
+    private void sendStatusEmail(VolunteerApplication application, String status) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(application.getUser().getEmail());
+            message.setSubject("Volunteer Application Update - " + application.getEvent().getTitle());
+
+            String content = status.equals("APPROVED")
+                    ? "Congratulations! Your application for " + application.getEvent().getTitle()
+                            + " has been approved."
+                    : "We regret to inform you that your application for " + application.getEvent().getTitle()
+                            + " was not accepted at this time.";
+
+            // Updated to use getFullName() to match your User.java entity
+            message.setText(
+                    "Hello " + application.getUser().getFullName() + ",\n\n" + content + "\n\nRegards,\nTrust Team");
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            // Log error but don't stop the database transaction
+            System.err.println("Email failed to send: " + e.getMessage());
+        }
+    }
+
+    // Helper method to convert Entity to Response DTO
+    private VolunteerResponse mapToResponse(VolunteerApplication app) {
+        return VolunteerResponse.builder()
+                .id(app.getId())
+                .eventId(app.getEvent().getId())
+                .eventTitle(app.getEvent().getTitle()) // Helpful for the UI
+                .userId(app.getUser().getId())
+                .userFullName(app.getUser().getFullName()) // Updated to match User.java
+                .status(app.getStatus())
+                .message(app.getMessage())
+                .build();
+    }
+}

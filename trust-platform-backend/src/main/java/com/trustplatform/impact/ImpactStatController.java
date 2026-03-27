@@ -1,0 +1,35 @@
+package com.trustplatform.impact;
+
+import com.trustplatform.impact.dto.ImpactStatResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/impact-stats")
+@RequiredArgsConstructor
+public class ImpactStatController {
+
+    private final ImpactStatService impactStatService;
+
+    @GetMapping
+    public ResponseEntity<List<ImpactStatResponse>> getAllStats() {
+        return ResponseEntity.ok(impactStatService.getAllStats());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(impactStatService.getById(id));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ImpactStatResponse> updateStat(
+            @PathVariable Long id,
+            @RequestBody Long newValue) {
+        return ResponseEntity.ok(impactStatService.update(id, newValue));
+    }
+}
