@@ -11,4 +11,6 @@ public class ImpactStatResponse {
     private Long currentValue;
     private String unit;
     private String icon;
+    private boolean featured;
+    private int displayOrder;
 }

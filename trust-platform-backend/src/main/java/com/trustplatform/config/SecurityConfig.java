@@ -51,19 +51,45 @@ public class SecurityConfig {
                 )
 
                 // =============================================
-                // AUTHORIZATION RULES — unchanged
+                // AUTHORIZATION RULES
                 // =============================================
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/api/payments/webhook",
-                                "/error"
-                        ).permitAll()
+                        // Auth endpoints — always public
+                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error").permitAll()
+
+                        // Public read-only content
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/impact-stats/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/success-stories/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/members/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
+
+                        // Public contact form
+                        .requestMatchers(HttpMethod.POST, "/api/messages").permitAll()
+
+                        // Admin-only: content mutations + admin namespace
+                        .requestMatchers(HttpMethod.POST,   "/api/events/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/events/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/events/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/success-stories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/success-stories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/success-stories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/success-stories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/members/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/members/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/members/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/members/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST,   "/api/impact-stats/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,    "/api/impact-stats/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/api/impact-stats/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/impact-stats/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        // Volunteer: any authenticated user can apply
+                        .requestMatchers(HttpMethod.POST, "/api/volunteers/apply").authenticated()
+
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
 

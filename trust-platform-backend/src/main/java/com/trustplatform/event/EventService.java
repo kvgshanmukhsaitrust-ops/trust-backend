@@ -2,7 +2,6 @@ package com.trustplatform.event;
 
 import com.trustplatform.event.dto.*;
 import com.trustplatform.event.media.EventMedia;
-import com.trustplatform.event.media.MediaType;
 import com.trustplatform.event.media.EventMediaRepository;
 import com.trustplatform.exception.ResourceNotFoundException;
 import com.trustplatform.user.User;
@@ -13,9 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
-import org.springframework.transaction.annotation.Transactional;
-
-
 
 @Service
 public class EventService {
@@ -34,35 +30,72 @@ public class EventService {
 
     @Transactional
     public EventResponse createEvent(CreateEventRequest request, String adminEmail) {
-
-        if (request.getEventDate().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Event date must be in future");
-        }
-
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
 
         Event event = new Event();
-        event.setTitle(request.getTitle());
-        event.setDescription(request.getDescription());
-        event.setLocation(request.getLocation());
-        event.setEventDate(request.getEventDate());
-        event.setRegistrationDeadline(request.getRegistrationDeadline());
-        event.setMaxVolunteers(request.getMaxVolunteers());
+        applyRequest(event, request);
         event.setStatus(EventStatus.UPCOMING);
         event.setCreatedBy(admin);
-
         eventRepository.save(event);
-
         return mapToResponse(event);
     }
 
+    @Transactional
+    public EventResponse updateEvent(Long id, CreateEventRequest request) {
+        Event event = eventRepository.findById(id)
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + id));
+        applyRequest(event, request);
+        eventRepository.save(event);
+        return mapToResponse(event);
+    }
+
+    @Transactional
+    public void deleteEvent(Long id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + id));
+        event.setDeleted(true);
+        eventRepository.save(event);
+    }
+
+    @Transactional
+    public EventResponse togglePublish(Long id, boolean publish) {
+        Event event = eventRepository.findById(id)
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + id));
+        event.setPublished(publish);
+        eventRepository.save(event);
+        return mapToResponse(event);
+    }
+
+    @Transactional
+    public EventResponse toggleFeatured(Long id, boolean featured) {
+        Event event = eventRepository.findById(id)
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + id));
+        event.setFeatured(featured);
+        eventRepository.save(event);
+        return mapToResponse(event);
+    }
+
+    // Public: only published events
+    @Transactional(readOnly = true)
+    public Page<EventResponse> getPublishedEvents(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("eventDate").descending()));
+        return eventRepository.findByDeletedFalseAndPublishedTrue(pageable)
+                .map(this::mapToResponse);
+    }
+
+    // Admin: all events including unpublished
+    @Transactional(readOnly = true)
     public Page<EventResponse> getAllEvents(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("eventDate").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("eventDate").descending()));
         return eventRepository.findByDeletedFalse(pageable)
                 .map(this::mapToResponse);
     }
 
+    @Transactional(readOnly = true)
     public EventResponse getEventById(Long id) {
         Event event = eventRepository.findById(id)
                 .filter(e -> !e.isDeleted())
@@ -70,22 +103,41 @@ public class EventService {
         return mapToResponse(event);
     }
 
-    private EventResponse mapToResponse(Event event) {
+    private void applyRequest(Event event, CreateEventRequest request) {
+        if (request.getTitle() != null) event.setTitle(request.getTitle());
+        if (request.getDescription() != null) event.setDescription(request.getDescription());
+        if (request.getLocation() != null) event.setLocation(request.getLocation());
+        if (request.getCategory() != null) event.setCategory(request.getCategory());
+        if (request.getBannerUrl() != null) event.setBannerUrl(request.getBannerUrl());
+        if (request.getEventDate() != null) event.setEventDate(request.getEventDate());
+        if (request.getRegistrationDeadline() != null) event.setRegistrationDeadline(request.getRegistrationDeadline());
+        if (request.getMaxVolunteers() != null) event.setMaxVolunteers(request.getMaxVolunteers());
+        if (request.getPublished() != null) event.setPublished(request.getPublished());
+        if (request.getFeatured() != null) event.setFeatured(request.getFeatured());
+        if (request.getDisplayOrder() != null) event.setDisplayOrder(request.getDisplayOrder());
+    }
+
+    public EventResponse mapToResponse(Event event) {
         return new EventResponse(
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
                 event.getLocation(),
+                event.getCategory(),
+                event.getBannerUrl(),
                 event.getEventDate(),
+                event.getRegistrationDeadline(),
+                event.getMaxVolunteers(),
+                event.getCurrentVolunteerCount(),
                 event.getStatus(),
+                event.isPublished(),
+                event.isFeatured(),
+                event.getDisplayOrder(),
                 event.getMediaList() == null ? null :
                         event.getMediaList().stream()
                                 .filter(m -> !m.isDeleted())
-                                .map(m -> new EventMediaResponse(
-                                        m.getMediaUrl(),
-                                        m.getMediaType()   // ✅ CORRECT
-                                ))
+                                .map(m -> new EventMediaResponse(m.getMediaUrl(), m.getMediaType()))
                                 .collect(Collectors.toList())
         );
-    }    
     }
+}

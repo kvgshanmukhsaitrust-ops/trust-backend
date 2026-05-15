@@ -7,4 +7,5 @@ import java.util.List;
 @Repository
 public interface TrustMemberRepository extends JpaRepository<TrustMember, Long> {
     List<TrustMember> findAllByOrderByDisplayOrderAsc();
+    List<TrustMember> findByPublishedTrueOrderByDisplayOrderAsc();
 }

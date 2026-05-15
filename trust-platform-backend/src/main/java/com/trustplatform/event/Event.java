@@ -24,6 +24,10 @@ public class Event extends BaseAuditableEntity {
 
     private String location;
 
+    private String category;
+
+    private String bannerUrl;
+
     @Column(nullable = false)
     private LocalDateTime eventDate;
 
@@ -37,6 +41,12 @@ public class Event extends BaseAuditableEntity {
     private EventStatus status;
 
     private boolean deleted = false;
+
+    private boolean published = true;
+
+    private boolean featured = false;
+
+    private int displayOrder = 0;
     
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -142,6 +152,15 @@ public class Event extends BaseAuditableEntity {
 		this.mediaList = mediaList;
 	}
 
-    // getters & setters
-    
-}
+    // getters & setters — new CMS fields
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+    public String getBannerUrl() { return bannerUrl; }
+    public void setBannerUrl(String bannerUrl) { this.bannerUrl = bannerUrl; }
+    public boolean isPublished() { return published; }
+    public void setPublished(boolean published) { this.published = published; }
+    public boolean isFeatured() { return featured; }
+    public void setFeatured(boolean featured) { this.featured = featured; }
+    public int getDisplayOrder() { return displayOrder; }
+    public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
+}

@@ -12,13 +12,17 @@ public class ImpactStat {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String category; // e.g., "WATER", "TREES", "STUDENTS", "CARRIAGES"
 
     @Column(nullable = false)
     private Long currentValue;
 
-    private String unit; // e.g., "Liters", "Trees", "Students"
+    private String unit;
     
-    private String icon; // e.g., "💧", "🌳" (Stored as emoji or icon name)
+    private String icon;
+
+    private boolean featured = false;
+
+    private int displayOrder = 0;
 }

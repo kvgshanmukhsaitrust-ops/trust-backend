@@ -14,4 +14,7 @@ public class TrustMemberResponse {
     private String imageUrl;
     private String twitterUrl;
     private String linkedinUrl;
+    private int displayOrder;
+    private boolean published;
+    private boolean featured;
 }

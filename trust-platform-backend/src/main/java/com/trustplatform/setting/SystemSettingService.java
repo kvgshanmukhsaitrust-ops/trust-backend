@@ -1,6 +1,5 @@
 package com.trustplatform.setting;
 
-import com.trustplatform.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,22 +14,25 @@ public class SystemSettingService {
 
     /**
      * Returns the current value for the given setting key.
-     * Throws ResourceNotFoundException if the key does not exist.
+     * Returns null (not exception) if key not found — callers handle missing gracefully.
      */
     public String getSettingValue(String key) {
-        SystemSetting setting = repository.findBySettingKey(key)
-                .orElseThrow(() -> new ResourceNotFoundException("Setting not found: " + key));
-        return setting.getSettingValue();
+        return repository.findBySettingKey(key)
+                .map(SystemSetting::getSettingValue)
+                .orElse(null);
     }
 
     /**
-     * Updates the value for the given setting key.
-     * Returns the updated SystemSetting entity.
+     * Upserts (creates or updates) a setting key with the given value.
      */
     @Transactional
-    public SystemSetting updateSetting(String key, String newValue) {
+    public SystemSetting upsertSetting(String key, String newValue) {
         SystemSetting setting = repository.findBySettingKey(key)
-                .orElseThrow(() -> new ResourceNotFoundException("Setting not found: " + key));
+                .orElseGet(() -> {
+                    SystemSetting s = new SystemSetting();
+                    s.setSettingKey(key);
+                    return s;
+                });
         setting.setSettingValue(newValue);
         return repository.save(setting);
     }

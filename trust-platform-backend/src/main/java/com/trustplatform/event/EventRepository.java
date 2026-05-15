@@ -10,11 +10,11 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     Page<Event> findByDeletedFalse(Pageable pageable);
 
+    Page<Event> findByDeletedFalseAndPublishedTrue(Pageable pageable);
+
     Page<Event> findByStatusAndDeletedFalse(EventStatus status, Pageable pageable);
 
     Page<Event> findByEventDateBeforeAndDeletedFalse(LocalDateTime now, Pageable pageable);
     long countByStatus(EventStatus status);
- 
-
   
 }

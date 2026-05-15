@@ -27,5 +27,9 @@ public class TrustMember {
     private String twitterUrl;
     private String linkedinUrl;
 
-    private int displayOrder; // To control who appears first in the grid
+    private int displayOrder;
+
+    private boolean published = true;
+
+    private boolean featured = false;
 }

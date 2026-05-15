@@ -39,3 +39,19 @@ ON DUPLICATE KEY UPDATE name=VALUES(name);
 INSERT INTO system_settings (setting_key, setting_value)
 VALUES ('HOME_HERO_IMAGE', 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c')
 ON DUPLICATE KEY UPDATE setting_key=setting_key;
+
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('HOME_HERO_TITLE', 'Bringing Hope to Every Corner.')
+ON DUPLICATE KEY UPDATE setting_key=setting_key;
+
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('HOME_HERO_SUBTITLE', 'From education to clean water, our work is driven by empathy and measurable results.')
+ON DUPLICATE KEY UPDATE setting_key=setting_key;
+
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('HOME_HERO_CTA_TEXT', 'Support Our Mission')
+ON DUPLICATE KEY UPDATE setting_key=setting_key;
+
+INSERT INTO system_settings (setting_key, setting_value)
+VALUES ('HOME_HERO_CTA_LINK', '/donation')
+ON DUPLICATE KEY UPDATE setting_key=setting_key;

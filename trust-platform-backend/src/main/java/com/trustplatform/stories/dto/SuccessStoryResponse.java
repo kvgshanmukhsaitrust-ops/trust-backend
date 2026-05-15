@@ -11,4 +11,7 @@ public class SuccessStoryResponse {
     private String description;
     private String imageUrl;
     private String category;
+    private boolean published;
+    private boolean featured;
+    private int displayOrder;
 }

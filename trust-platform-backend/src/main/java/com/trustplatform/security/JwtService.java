@@ -39,6 +39,18 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateToken(com.trustplatform.user.User user) {
+        Date now = new Date();
+        return Jwts.builder()
+                .setSubject(user.getEmail())
+                .claim("role", user.getRole().name())
+                .claim("name", user.getFullName())
+                .setIssuedAt(now)
+                .setExpiration(new Date(now.getTime() + jwtExpiration))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public String extractUsername(String token) {
         try {
             return parseClaims(token).getSubject();

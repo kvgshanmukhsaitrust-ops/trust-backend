@@ -33,15 +33,24 @@ public class AuthService {
         if (fullName == null || fullName.trim().isEmpty()) {
             fullName = request.getEmail();
         }
+        Role userRole = Role.USER;
+        if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
+            try {
+                userRole = Role.valueOf(request.getRole().toUpperCase());
+            } catch (Exception e) {
+                userRole = Role.USER;
+            }
+        }
+
         User user = User.builder()
                 .fullName(fullName)
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
-                .isActive(false)
+                .role(userRole)
+                .isActive(true)
                 .build();
         userRepository.save(user);
-        emailVerificationService.sendVerificationEmail(user);
+        // emailVerificationService.sendVerificationEmail(user); // Disabled for testing
         log.info("New user registered: {}", request.getEmail());
         return AuthenticationResponse.builder()
                 .token(null).refreshToken(null).build();
@@ -60,7 +69,7 @@ public class AuthService {
             throw new RuntimeException("Email not verified. Check your inbox.");
         }
 
-        String accessToken = jwtService.generateToken(user.getEmail());
+        String accessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
         log.info("User logged in: {}", user.getEmail());
         return buildResponse(accessToken, refreshToken, user);
@@ -75,7 +84,7 @@ public class AuthService {
 
         refreshTokenService.revokeToken(existing);
 
-        String newAccessToken = jwtService.generateToken(user.getEmail());
+        String newAccessToken = jwtService.generateToken(user);
         RefreshToken newRefresh = refreshTokenService
                 .rotateRefreshToken(user, familyId);
 

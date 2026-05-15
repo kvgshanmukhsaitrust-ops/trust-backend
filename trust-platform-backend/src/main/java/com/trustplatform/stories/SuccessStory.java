@@ -19,7 +19,13 @@ public class SuccessStory extends BaseAuditableEntity {
     @Column(length = 2000, nullable = false)
     private String description;
 
-    private String imageUrl; // URL of the photo for the card
+    private String imageUrl;
 
-    private String category; // e.g., "Education", "Environment", "Health"
+    private String category;
+
+    private boolean published = true;
+
+    private boolean featured = false;
+
+    private int displayOrder = 0;
 }
