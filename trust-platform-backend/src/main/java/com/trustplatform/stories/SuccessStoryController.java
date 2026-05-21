@@ -1,46 +1,42 @@
 package com.trustplatform.stories;
 
 import com.trustplatform.stories.dto.SuccessStoryResponse;
+import com.trustplatform.media.MediaAsset;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/success-stories")
 @RequiredArgsConstructor
 public class SuccessStoryController {
 
-    private final SuccessStoryRepository repository;
+    private final SuccessStoryService storyService;
 
-    // ── PUBLIC: only published stories ──────────────────────────
+    // ── PUBLIC: only published stories (unless admin=true requested) ──
     @GetMapping
     public List<SuccessStoryResponse> getAllStories(
             @RequestParam(required = false) Boolean admin) {
-        List<SuccessStory> stories;
-        if (Boolean.TRUE.equals(admin)) {
-            stories = repository.findAll();
-        } else {
-            stories = repository.findByPublishedTrueOrderByDisplayOrderAscIdDesc();
-        }
-        return stories.stream().map(this::toResponse).collect(Collectors.toList());
+        return storyService.getAllStories(admin);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SuccessStoryResponse> getById(@PathVariable Long id) {
-        return repository.findById(id)
-                .map(s -> ResponseEntity.ok(toResponse(s)))
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(storyService.getStoryById(id));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ── ADMIN: create ────────────────────────────────────────────
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SuccessStoryResponse> createStory(@RequestBody SuccessStory story) {
-        return ResponseEntity.ok(toResponse(repository.save(story)));
+        return ResponseEntity.ok(storyService.createStory(story));
     }
 
     // ── ADMIN: update ────────────────────────────────────────────
@@ -49,24 +45,23 @@ public class SuccessStoryController {
     public ResponseEntity<SuccessStoryResponse> updateStory(
             @PathVariable Long id,
             @RequestBody SuccessStory updated) {
-        return repository.findById(id).map(s -> {
-            if (updated.getTitle() != null) s.setTitle(updated.getTitle());
-            if (updated.getDescription() != null) s.setDescription(updated.getDescription());
-            if (updated.getImageUrl() != null) s.setImageUrl(updated.getImageUrl());
-            if (updated.getCategory() != null) s.setCategory(updated.getCategory());
-            s.setPublished(updated.isPublished());
-            s.setFeatured(updated.isFeatured());
-            s.setDisplayOrder(updated.getDisplayOrder());
-            return ResponseEntity.ok(toResponse(repository.save(s)));
-        }).orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(storyService.updateStory(id, updated));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ── ADMIN: delete ────────────────────────────────────────────
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteStory(@PathVariable Long id) {
-        repository.deleteById(id);
-        return ResponseEntity.noContent().build();
+        try {
+            storyService.deleteStory(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // ── ADMIN: toggle publish ────────────────────────────────────
@@ -74,22 +69,24 @@ public class SuccessStoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SuccessStoryResponse> togglePublish(
             @PathVariable Long id, @RequestParam boolean value) {
-        return repository.findById(id).map(s -> {
-            s.setPublished(value);
-            return ResponseEntity.ok(toResponse(repository.save(s)));
-        }).orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(storyService.togglePublish(id, value));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    private SuccessStoryResponse toResponse(SuccessStory s) {
-        return SuccessStoryResponse.builder()
-                .id(s.getId())
-                .title(s.getTitle())
-                .description(s.getDescription())
-                .imageUrl(s.getImageUrl())
-                .category(s.getCategory())
-                .published(s.isPublished())
-                .featured(s.isFeatured())
-                .displayOrder(s.getDisplayOrder())
-                .build();
+    // ── ADMIN: update gallery ────────────────────────────────────
+    @PutMapping("/{id}/gallery")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> updateGallery(
+            @PathVariable Long id,
+            @RequestBody List<MediaAsset> gallery) {
+        try {
+            storyService.updateStoryGallery(id, gallery);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

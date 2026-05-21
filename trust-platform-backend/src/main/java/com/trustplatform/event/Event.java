@@ -67,6 +67,19 @@ public class Event extends BaseAuditableEntity {
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     private List<EventMedia> mediaList;
 
+    // --- New Enterprise Event fields ---
+    private String coverImageUrl;
+    private String heroImageUrl;
+    private String subtitle;
+    private String instagramUrl;
+    private String youtubeUrl;
+    private String facebookUrl;
+    private String externalMediaUrl;
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    private List<EventFaq> faqs = new java.util.ArrayList<>();
+
 	public Long getId() {
 		return id;
 	}
@@ -176,4 +189,29 @@ public class Event extends BaseAuditableEntity {
     public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
     public List<String> getHighlights() { return highlights; }
     public void setHighlights(List<String> highlights) { this.highlights = highlights; }
+
+    // --- Getters & Setters for New Fields ---
+    public String getCoverImageUrl() { return coverImageUrl; }
+    public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
+
+    public String getHeroImageUrl() { return heroImageUrl; }
+    public void setHeroImageUrl(String heroImageUrl) { this.heroImageUrl = heroImageUrl; }
+
+    public String getSubtitle() { return subtitle; }
+    public void setSubtitle(String subtitle) { this.subtitle = subtitle; }
+
+    public String getInstagramUrl() { return instagramUrl; }
+    public void setInstagramUrl(String instagramUrl) { this.instagramUrl = instagramUrl; }
+
+    public String getYoutubeUrl() { return youtubeUrl; }
+    public void setYoutubeUrl(String youtubeUrl) { this.youtubeUrl = youtubeUrl; }
+
+    public String getFacebookUrl() { return facebookUrl; }
+    public void setFacebookUrl(String facebookUrl) { this.facebookUrl = facebookUrl; }
+
+    public String getExternalMediaUrl() { return externalMediaUrl; }
+    public void setExternalMediaUrl(String externalMediaUrl) { this.externalMediaUrl = externalMediaUrl; }
+
+    public List<EventFaq> getFaqs() { return faqs; }
+    public void setFaqs(List<EventFaq> faqs) { this.faqs = faqs; }
 }

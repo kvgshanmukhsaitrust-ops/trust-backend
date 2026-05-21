@@ -116,6 +116,29 @@ public class EventService {
         if (request.getFeatured() != null) event.setFeatured(request.getFeatured());
         if (request.getDisplayOrder() != null) event.setDisplayOrder(request.getDisplayOrder());
         if (request.getHighlights() != null) event.setHighlights(request.getHighlights());
+
+        // New enterprise fields
+        if (request.getCoverImageUrl() != null) event.setCoverImageUrl(request.getCoverImageUrl());
+        if (request.getHeroImageUrl() != null) event.setHeroImageUrl(request.getHeroImageUrl());
+        if (request.getSubtitle() != null) event.setSubtitle(request.getSubtitle());
+        if (request.getInstagramUrl() != null) event.setInstagramUrl(request.getInstagramUrl());
+        if (request.getYoutubeUrl() != null) event.setYoutubeUrl(request.getYoutubeUrl());
+        if (request.getFacebookUrl() != null) event.setFacebookUrl(request.getFacebookUrl());
+        if (request.getExternalMediaUrl() != null) event.setExternalMediaUrl(request.getExternalMediaUrl());
+
+        // Update FAQs using Cascade + orphan removal
+        if (request.getFaqs() != null) {
+            event.getFaqs().clear();
+            for (CreateEventRequest.FaqRequest faqReq : request.getFaqs()) {
+                EventFaq faq = EventFaq.builder()
+                        .event(event)
+                        .question(faqReq.getQuestion())
+                        .answer(faqReq.getAnswer())
+                        .displayOrder(faqReq.getDisplayOrder())
+                        .build();
+                event.getFaqs().add(faq);
+            }
+        }
     }
 
     public EventResponse mapToResponse(Event event) {
@@ -132,27 +155,43 @@ public class EventService {
             }
         }
 
-        return new EventResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getDescription(),
-                event.getLocation(),
-                event.getCategory(),
-                event.getBannerUrl(),
-                event.getEventDate(),
-                event.getRegistrationDeadline(),
-                event.getMaxVolunteers(),
-                event.getCurrentVolunteerCount(),
-                dynamicStatus,
-                event.isPublished(),
-                event.isFeatured(),
-                event.getDisplayOrder(),
-                event.getMediaList() == null ? null :
+        return EventResponse.builder()
+                .id(event.getId())
+                .title(event.getTitle())
+                .description(event.getDescription())
+                .location(event.getLocation())
+                .category(event.getCategory())
+                .bannerUrl(event.getBannerUrl())
+                .eventDate(event.getEventDate())
+                .registrationDeadline(event.getRegistrationDeadline())
+                .maxVolunteers(event.getMaxVolunteers())
+                .currentVolunteerCount(event.getCurrentVolunteerCount())
+                .status(dynamicStatus)
+                .published(event.isPublished())
+                .featured(event.isFeatured())
+                .displayOrder(event.getDisplayOrder())
+                .media(event.getMediaList() == null ? null :
                         event.getMediaList().stream()
                                 .filter(m -> !m.isDeleted())
                                 .map(m -> new EventMediaResponse(m.getMediaUrl(), m.getMediaType()))
-                                .collect(Collectors.toList()),
-                event.getHighlights() == null ? null : new java.util.ArrayList<>(event.getHighlights())
-        );
+                                .collect(Collectors.toList()))
+                .highlights(event.getHighlights() == null ? null : new java.util.ArrayList<>(event.getHighlights()))
+                .coverImageUrl(event.getCoverImageUrl())
+                .heroImageUrl(event.getHeroImageUrl())
+                .subtitle(event.getSubtitle())
+                .instagramUrl(event.getInstagramUrl())
+                .youtubeUrl(event.getYoutubeUrl())
+                .facebookUrl(event.getFacebookUrl())
+                .externalMediaUrl(event.getExternalMediaUrl())
+                .faqs(event.getFaqs() == null ? null :
+                        event.getFaqs().stream()
+                                .map(f -> EventResponse.FaqResponse.builder()
+                                        .id(f.getId())
+                                        .question(f.getQuestion())
+                                        .answer(f.getAnswer())
+                                        .displayOrder(f.getDisplayOrder())
+                                        .build())
+                                .collect(Collectors.toList()))
+                .build();
     }
 }

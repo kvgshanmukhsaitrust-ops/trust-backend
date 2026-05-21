@@ -1,10 +1,14 @@
 package com.trustplatform.event.dto;
 
 import com.trustplatform.event.EventStatus;
-
+import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EventResponse {
 
     private Long id;
@@ -24,54 +28,24 @@ public class EventResponse {
     private List<EventMediaResponse> media;
     private List<String> highlights;
 
-    public EventResponse(Long id, String title, String description, String location,
-                         String category, String bannerUrl,
-                         LocalDateTime eventDate, LocalDateTime registrationDeadline,
-                         Integer maxVolunteers, Integer currentVolunteerCount,
-                         EventStatus status, boolean published, boolean featured,
-                         int displayOrder, List<EventMediaResponse> media) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.location = location;
-        this.category = category;
-        this.bannerUrl = bannerUrl;
-        this.eventDate = eventDate;
-        this.registrationDeadline = registrationDeadline;
-        this.maxVolunteers = maxVolunteers;
-        this.currentVolunteerCount = currentVolunteerCount;
-        this.status = status;
-        this.published = published;
-        this.featured = featured;
-        this.displayOrder = displayOrder;
-        this.media = media;
-    }
+    // --- New Enterprise Fields ---
+    private String coverImageUrl;
+    private String heroImageUrl;
+    private String subtitle;
+    private String instagramUrl;
+    private String youtubeUrl;
+    private String facebookUrl;
+    private String externalMediaUrl;
+    private List<FaqResponse> faqs;
 
-    public EventResponse(Long id, String title, String description, String location,
-                         String category, String bannerUrl,
-                         LocalDateTime eventDate, LocalDateTime registrationDeadline,
-                         Integer maxVolunteers, Integer currentVolunteerCount,
-                         EventStatus status, boolean published, boolean featured,
-                         int displayOrder, List<EventMediaResponse> media, List<String> highlights) {
-        this(id, title, description, location, category, bannerUrl, eventDate, registrationDeadline,
-             maxVolunteers, currentVolunteerCount, status, published, featured, displayOrder, media);
-        this.highlights = highlights;
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class FaqResponse {
+        private Long id;
+        private String question;
+        private String answer;
+        private int displayOrder;
     }
-
-    public Long getId() { return id; }
-    public String getTitle() { return title; }
-    public String getDescription() { return description; }
-    public String getLocation() { return location; }
-    public String getCategory() { return category; }
-    public String getBannerUrl() { return bannerUrl; }
-    public LocalDateTime getEventDate() { return eventDate; }
-    public LocalDateTime getRegistrationDeadline() { return registrationDeadline; }
-    public Integer getMaxVolunteers() { return maxVolunteers; }
-    public Integer getCurrentVolunteerCount() { return currentVolunteerCount; }
-    public EventStatus getStatus() { return status; }
-    public boolean isPublished() { return published; }
-    public boolean isFeatured() { return featured; }
-    public int getDisplayOrder() { return displayOrder; }
-    public List<EventMediaResponse> getMedia() { return media; }
-    public List<String> getHighlights() { return highlights; }
 }

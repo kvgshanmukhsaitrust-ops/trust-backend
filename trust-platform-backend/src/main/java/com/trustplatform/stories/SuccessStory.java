@@ -34,6 +34,25 @@ public class SuccessStory extends BaseAuditableEntity {
 
     private int displayOrder = 0;
 
+    // --- New Enterprise Story fields ---
+    private String location;
+    private String subtitle;
+    private String beforeImageUrl;
+    private String afterImageUrl;
+    private String videoUrl;
+
+    @Column(length = 1000)
+    private String testimonialQuote;
+    private String testimonialAuthor;
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private java.util.List<StoryTimelineMilestone> timeline = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    private java.util.List<StoryImpactMetric> metrics = new java.util.ArrayList<>();
+
     @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private boolean deleted = false;
