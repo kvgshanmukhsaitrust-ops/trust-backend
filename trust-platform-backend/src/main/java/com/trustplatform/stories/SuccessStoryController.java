@@ -35,7 +35,7 @@ public class SuccessStoryController {
     // ── ADMIN: create ────────────────────────────────────────────
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SuccessStoryResponse> createStory(@RequestBody SuccessStory story) {
+    public ResponseEntity<SuccessStoryResponse> createStory(@jakarta.validation.Valid @RequestBody SuccessStory story) {
         return ResponseEntity.ok(storyService.createStory(story));
     }
 
@@ -44,7 +44,7 @@ public class SuccessStoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<SuccessStoryResponse> updateStory(
             @PathVariable Long id,
-            @RequestBody SuccessStory updated) {
+            @jakarta.validation.Valid @RequestBody SuccessStory updated) {
         try {
             return ResponseEntity.ok(storyService.updateStory(id, updated));
         } catch (Exception e) {

@@ -43,6 +43,60 @@ public class GlobalExceptionHandler {
     }
 
     // ==============================
+    // JSON / Http Body Parsing Errors
+    // ==============================
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadable(
+            org.springframework.http.converter.HttpMessageNotReadableException ex,
+            HttpServletRequest request) {
+
+        log.warn("Failed to read HTTP message / request body: {}", ex.getMessage());
+
+        ApiResponse<Object> response = ApiResponse.error(
+                "Malformed request payload or missing required request body",
+                null,
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    // ==============================
+    // Database / Integrity Constraints
+    // ==============================
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(
+            org.springframework.dao.DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+
+        log.error("Database constraint or integrity violation", ex);
+
+        String errorMessage = "Database integrity violation. Please ensure all required fields are filled correctly.";
+        if (ex.getRootCause() != null && ex.getRootCause().getMessage() != null) {
+            String rootMsg = ex.getRootCause().getMessage();
+            if (rootMsg.contains("Data too long for column")) {
+                errorMessage = "Input data is too long for one of the fields.";
+            } else if (rootMsg.contains("cannot be null")) {
+                errorMessage = "A required database field is missing or null.";
+            } else if (rootMsg.contains("foreign key constraint fails")) {
+                errorMessage = "Database relationship integrity check failed (invalid foreign key references).";
+            } else if (rootMsg.contains("Duplicate entry")) {
+                errorMessage = "An entry with this unique value already exists.";
+            }
+        }
+
+        ApiResponse<Object> response = ApiResponse.error(
+                errorMessage,
+                null,
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    // ==============================
     // Custom Exceptions
     // ==============================
 

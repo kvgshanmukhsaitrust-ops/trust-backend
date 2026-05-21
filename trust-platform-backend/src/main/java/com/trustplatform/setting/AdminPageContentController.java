@@ -34,8 +34,8 @@ public class AdminPageContentController {
     @PutMapping("/{key}")
     public ResponseEntity<String> upsertPageContent(
             @PathVariable String key,
-            @RequestBody String value) {
-        String cleaned = value.trim();
+            @RequestBody(required = false) String value) {
+        String cleaned = value == null ? "" : value.trim();
         // Strip surrounding quotes if sent as JSON string
         if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length() >= 2) {
             cleaned = cleaned.substring(1, cleaned.length() - 1);

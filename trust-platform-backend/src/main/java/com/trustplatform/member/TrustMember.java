@@ -17,14 +17,19 @@ public class TrustMember {
 
     private String role; // e.g., "Founder", "President", "Secretary"
 
+    @Column(length = 1000)
     private String tagline; // Short text for the front of the card
 
     @Column(length = 1000)
     private String bio; // Detailed text for the back of the card
 
+    @Column(length = 2000)
     private String imageUrl; // For the profile avatar
 
+    @Column(length = 1000)
     private String twitterUrl;
+
+    @Column(length = 1000)
     private String linkedinUrl;
 
     private int displayOrder;

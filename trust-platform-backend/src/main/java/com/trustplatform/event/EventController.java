@@ -40,7 +40,7 @@ public class EventController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EventResponse> createEvent(
-            @RequestBody CreateEventRequest request,
+            @jakarta.validation.Valid @RequestBody CreateEventRequest request,
             Authentication authentication) {
         return ResponseEntity.ok(eventService.createEvent(request, authentication.getName()));
     }
@@ -50,7 +50,7 @@ public class EventController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EventResponse> updateEvent(
             @PathVariable Long id,
-            @RequestBody CreateEventRequest request) {
+            @jakarta.validation.Valid @RequestBody CreateEventRequest request) {
         return ResponseEntity.ok(eventService.updateEvent(id, request));
     }
 

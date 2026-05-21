@@ -1,6 +1,8 @@
 package com.trustplatform.event.dto;
 
 import lombok.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,11 +12,15 @@ import java.util.List;
 @Builder
 public class CreateEventRequest {
 
+    @NotBlank(message = "Initiative title is required")
     private String title;
+
+    @NotBlank(message = "Initiative description is required")
     private String description;
     private String location;
     private String category;
     private String bannerUrl;
+    @NotNull(message = "Initiative date is required")
     private LocalDateTime eventDate;
     private LocalDateTime registrationDeadline;
     private Integer maxVolunteers;

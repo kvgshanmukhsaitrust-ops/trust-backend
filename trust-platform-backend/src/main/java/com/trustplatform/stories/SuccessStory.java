@@ -7,6 +7,8 @@ import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import jakarta.validation.constraints.NotBlank;
+
 @Entity
 @Table(name = "success_stories")
 @SQLDelete(sql = "UPDATE success_stories SET deleted = true WHERE id = ?")
@@ -18,12 +20,15 @@ public class SuccessStory extends BaseAuditableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Story title is required")
     @Column(nullable = false)
     private String title;
 
+    @NotBlank(message = "Story description is required")
     @Column(length = 2000, nullable = false)
     private String description;
 
+    @Column(length = 2000)
     private String imageUrl;
 
     private String category;
@@ -36,9 +41,17 @@ public class SuccessStory extends BaseAuditableEntity {
 
     // --- New Enterprise Story fields ---
     private String location;
+
+    @Column(length = 1000)
     private String subtitle;
+
+    @Column(length = 2000)
     private String beforeImageUrl;
+
+    @Column(length = 2000)
     private String afterImageUrl;
+
+    @Column(length = 2000)
     private String videoUrl;
 
     @Column(length = 1000)

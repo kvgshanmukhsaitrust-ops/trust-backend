@@ -31,6 +31,7 @@ public class Event extends BaseAuditableEntity {
 
     private String category;
 
+    @Column(length = 2000)
     private String bannerUrl;
 
     @Column(nullable = false)
@@ -68,12 +69,25 @@ public class Event extends BaseAuditableEntity {
     private List<EventMedia> mediaList;
 
     // --- New Enterprise Event fields ---
+    @Column(length = 2000)
     private String coverImageUrl;
+
+    @Column(length = 2000)
     private String heroImageUrl;
+
+    @Column(length = 1000)
     private String subtitle;
+
+    @Column(length = 2000)
     private String instagramUrl;
+
+    @Column(length = 2000)
     private String youtubeUrl;
+
+    @Column(length = 2000)
     private String facebookUrl;
+
+    @Column(length = 2000)
     private String externalMediaUrl;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)

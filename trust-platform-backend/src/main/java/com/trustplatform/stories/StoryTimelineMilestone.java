@@ -25,6 +25,7 @@ public class StoryTimelineMilestone {
     @Column(length = 2000)
     private String description;
 
+    @Column(length = 2000)
     private String imageUrl;
 
     @Column(name = "order_index")

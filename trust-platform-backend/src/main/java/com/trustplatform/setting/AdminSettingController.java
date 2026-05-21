@@ -24,8 +24,9 @@ public class AdminSettingController {
 
     // Legacy endpoint: update hero image
     @PutMapping("/hero-image")
-    public ResponseEntity<String> updateHeroImage(@RequestBody String newUrl) {
-        SystemSetting updated = settingService.upsertSetting("HOME_HERO_IMAGE", newUrl.trim());
+    public ResponseEntity<String> updateHeroImage(@RequestBody(required = false) String newUrl) {
+        String cleaned = newUrl == null ? "" : newUrl.trim();
+        SystemSetting updated = settingService.upsertSetting("HOME_HERO_IMAGE", cleaned);
         return ResponseEntity.ok(updated.getSettingValue());
     }
 
@@ -42,9 +43,9 @@ public class AdminSettingController {
     @PutMapping("/{key}")
     public ResponseEntity<String> upsertSetting(
             @PathVariable String key,
-            @RequestBody String value) {
+            @RequestBody(required = false) String value) {
         // Strip surrounding quotes if the client sent a JSON-encoded string
-        String cleaned = value.trim();
+        String cleaned = value == null ? "" : value.trim();
         if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length() >= 2) {
             cleaned = cleaned.substring(1, cleaned.length() - 1);
         }
