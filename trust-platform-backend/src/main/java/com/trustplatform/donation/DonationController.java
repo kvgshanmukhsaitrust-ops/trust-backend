@@ -117,12 +117,17 @@ public class DonationController {
         );
     }
     @GetMapping("/my")
-    public ResponseEntity<List<Donation>> getMyDonations(Authentication authentication) {
+    public ResponseEntity<ApiSuccessResponse<List<DonationResponse>>> getMyDonations(Authentication authentication) {
 
         User user = (User) authentication.getPrincipal();
 
         return ResponseEntity.ok(
-                donationService.getUserDonations(user.getId())
+                ApiSuccessResponse.<List<DonationResponse>>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Donations fetched successfully")
+                        .data(donationService.getUserDonations(user.getId()))
+                        .build()
         );
     }
     @GetMapping("/{id}")

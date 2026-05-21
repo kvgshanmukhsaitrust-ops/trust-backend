@@ -8,8 +8,13 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 @Entity
 @Table(name = "events")
+@SQLDelete(sql = "UPDATE events SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class Event extends BaseAuditableEntity {
 
     @Id
@@ -40,6 +45,7 @@ public class Event extends BaseAuditableEntity {
     @Enumerated(EnumType.STRING)
     private EventStatus status;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean deleted = false;
 
     private boolean published = true;
@@ -47,6 +53,11 @@ public class Event extends BaseAuditableEntity {
     private boolean featured = false;
 
     private int displayOrder = 0;
+    
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "event_highlights", joinColumns = @JoinColumn(name = "event_id"))
+    @Column(name = "image_url", length = 1000)
+    private List<String> highlights = new java.util.ArrayList<>();
     
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -163,4 +174,6 @@ public class Event extends BaseAuditableEntity {
     public void setFeatured(boolean featured) { this.featured = featured; }
     public int getDisplayOrder() { return displayOrder; }
     public void setDisplayOrder(int displayOrder) { this.displayOrder = displayOrder; }
+    public List<String> getHighlights() { return highlights; }
+    public void setHighlights(List<String> highlights) { this.highlights = highlights; }
 }

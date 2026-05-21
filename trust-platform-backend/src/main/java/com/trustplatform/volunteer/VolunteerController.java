@@ -66,4 +66,22 @@ public class VolunteerController {
     public void reject(@PathVariable Long id) {
         volunteerService.rejectVolunteer(id);
     }
+
+    @GetMapping("/my")
+    @PreAuthorize("hasAnyRole('USER','VOLUNTEER','ADMIN')")
+    public ResponseEntity<ApiSuccessResponse<List<VolunteerResponse>>> getMyApplications(
+            org.springframework.security.core.Authentication authentication) {
+
+        com.trustplatform.user.User user = (com.trustplatform.user.User) authentication.getPrincipal();
+        List<VolunteerResponse> responses = volunteerService.getUserApplications(user.getId());
+
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<List<VolunteerResponse>>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Volunteer applications fetched successfully")
+                        .data(responses)
+                        .build()
+        );
+    }
 }

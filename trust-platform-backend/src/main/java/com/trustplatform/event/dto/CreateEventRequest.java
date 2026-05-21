@@ -1,6 +1,7 @@
 package com.trustplatform.event.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CreateEventRequest {
 
@@ -15,6 +16,7 @@ public class CreateEventRequest {
     private Boolean published = true;
     private Boolean featured = false;
     private Integer displayOrder = 0;
+    private List<String> highlights;
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
@@ -38,4 +40,6 @@ public class CreateEventRequest {
     public void setFeatured(Boolean featured) { this.featured = featured; }
     public Integer getDisplayOrder() { return displayOrder; }
     public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
+    public List<String> getHighlights() { return highlights; }
+    public void setHighlights(List<String> highlights) { this.highlights = highlights; }
 }

@@ -117,9 +117,12 @@ public class DonationService {
                 .createdAt(donation.getCreatedAt())
                 .build();
     }
-    public List<Donation> getUserDonations(Long userId) {
+    public List<DonationResponse> getUserDonations(Long userId) {
 
-        return donationRepository.findByUser_Id(userId);
+        return donationRepository.findByUser_Id(userId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     public Donation getDonationById(Long donationId) {

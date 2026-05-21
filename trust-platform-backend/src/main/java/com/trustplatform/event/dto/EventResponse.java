@@ -22,6 +22,7 @@ public class EventResponse {
     private boolean featured;
     private int displayOrder;
     private List<EventMediaResponse> media;
+    private List<String> highlights;
 
     public EventResponse(Long id, String title, String description, String location,
                          String category, String bannerUrl,
@@ -46,6 +47,17 @@ public class EventResponse {
         this.media = media;
     }
 
+    public EventResponse(Long id, String title, String description, String location,
+                         String category, String bannerUrl,
+                         LocalDateTime eventDate, LocalDateTime registrationDeadline,
+                         Integer maxVolunteers, Integer currentVolunteerCount,
+                         EventStatus status, boolean published, boolean featured,
+                         int displayOrder, List<EventMediaResponse> media, List<String> highlights) {
+        this(id, title, description, location, category, bannerUrl, eventDate, registrationDeadline,
+             maxVolunteers, currentVolunteerCount, status, published, featured, displayOrder, media);
+        this.highlights = highlights;
+    }
+
     public Long getId() { return id; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
@@ -61,4 +73,5 @@ public class EventResponse {
     public boolean isFeatured() { return featured; }
     public int getDisplayOrder() { return displayOrder; }
     public List<EventMediaResponse> getMedia() { return media; }
+    public List<String> getHighlights() { return highlights; }
 }

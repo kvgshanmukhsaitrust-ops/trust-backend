@@ -41,6 +41,11 @@ public class VolunteerService {
  
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        if (event.getStatus() == com.trustplatform.event.EventStatus.COMPLETED || 
+            (event.getEventDate() != null && event.getEventDate().toLocalDate().isBefore(java.time.LocalDate.now()))) {
+            throw new BadRequestException("Cannot apply for a completed event");
+        }
  
         if (volunteerRepository.existsByUserIdAndEventId(user.getId(), event.getId())) {
             throw new BadRequestException("You have already applied for this event");
@@ -147,6 +152,13 @@ public class VolunteerService {
         }
     }
  
+    @Transactional(readOnly = true)
+    public List<VolunteerResponse> getUserApplications(Long userId) {
+        return volunteerRepository.findByUserId(userId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     // ============================
     // MAPPER
     // ============================

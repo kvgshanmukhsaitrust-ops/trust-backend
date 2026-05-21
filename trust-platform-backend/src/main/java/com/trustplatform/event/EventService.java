@@ -115,9 +115,23 @@ public class EventService {
         if (request.getPublished() != null) event.setPublished(request.getPublished());
         if (request.getFeatured() != null) event.setFeatured(request.getFeatured());
         if (request.getDisplayOrder() != null) event.setDisplayOrder(request.getDisplayOrder());
+        if (request.getHighlights() != null) event.setHighlights(request.getHighlights());
     }
 
     public EventResponse mapToResponse(Event event) {
+        EventStatus dynamicStatus = event.getStatus();
+        if (event.getEventDate() != null && dynamicStatus != EventStatus.CANCELLED) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            java.time.LocalDate eventDay = event.getEventDate().toLocalDate();
+            if (eventDay.isBefore(today)) {
+                dynamicStatus = EventStatus.COMPLETED;
+            } else if (eventDay.isEqual(today)) {
+                dynamicStatus = EventStatus.ONGOING;
+            } else {
+                dynamicStatus = EventStatus.UPCOMING;
+            }
+        }
+
         return new EventResponse(
                 event.getId(),
                 event.getTitle(),
@@ -129,7 +143,7 @@ public class EventService {
                 event.getRegistrationDeadline(),
                 event.getMaxVolunteers(),
                 event.getCurrentVolunteerCount(),
-                event.getStatus(),
+                dynamicStatus,
                 event.isPublished(),
                 event.isFeatured(),
                 event.getDisplayOrder(),
@@ -137,7 +151,8 @@ public class EventService {
                         event.getMediaList().stream()
                                 .filter(m -> !m.isDeleted())
                                 .map(m -> new EventMediaResponse(m.getMediaUrl(), m.getMediaType()))
-                                .collect(Collectors.toList())
+                                .collect(Collectors.toList()),
+                event.getHighlights() == null ? null : new java.util.ArrayList<>(event.getHighlights())
         );
     }
 }
