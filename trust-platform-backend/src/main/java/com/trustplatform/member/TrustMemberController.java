@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.trustplatform.audit.AuditAction;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,14 +39,16 @@ public class TrustMemberController {
 
     // ── ADMIN: create ────────────────────────────────────────────
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("CREATE_MEMBER")
     public ResponseEntity<TrustMemberResponse> addMember(@RequestBody TrustMember member) {
         return ResponseEntity.ok(toResponse(repository.save(member)));
     }
 
     // ── ADMIN: update ────────────────────────────────────────────
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("UPDATE_MEMBER")
     public ResponseEntity<TrustMemberResponse> updateMember(
             @PathVariable Long id,
             @RequestBody TrustMember updated) {
@@ -66,7 +69,8 @@ public class TrustMemberController {
 
     // ── ADMIN: delete ────────────────────────────────────────────
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("DELETE_MEMBER")
     public ResponseEntity<Void> removeMember(@PathVariable Long id) {
         repository.deleteById(id);
         return ResponseEntity.noContent().build();

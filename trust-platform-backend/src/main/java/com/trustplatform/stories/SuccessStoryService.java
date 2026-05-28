@@ -1,6 +1,7 @@
 package com.trustplatform.stories;
 
 import com.trustplatform.stories.dto.SuccessStoryResponse;
+import com.trustplatform.stories.dto.SuccessStorySummaryResponse;
 import com.trustplatform.media.MediaAsset;
 import com.trustplatform.media.MediaAssetRepository;
 import com.trustplatform.event.media.MediaType;
@@ -13,6 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.trustplatform.common.ContentVersion;
+import com.trustplatform.common.ContentVersionRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Service
 @RequiredArgsConstructor
 public class SuccessStoryService {
@@ -21,16 +26,18 @@ public class SuccessStoryService {
     private final StoryTimelineMilestoneRepository milestoneRepository;
     private final StoryImpactMetricRepository metricRepository;
     private final MediaAssetRepository mediaAssetRepository;
+    private final ContentVersionRepository versionRepository;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
-    public List<SuccessStoryResponse> getAllStories(Boolean admin) {
+    public List<SuccessStorySummaryResponse> getAllStories(Boolean admin) {
         List<SuccessStory> stories;
         if (Boolean.TRUE.equals(admin)) {
             stories = storyRepository.findAll();
         } else {
             stories = storyRepository.findByPublishedTrueOrderByDisplayOrderAscIdDesc();
         }
-        return stories.stream().map(this::mapToResponse).collect(Collectors.toList());
+        return stories.stream().map(this::mapToSummaryResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -75,6 +82,28 @@ public class SuccessStoryService {
                 .filter(s -> !s.isDeleted())
                 .orElseThrow(() -> new ResourceNotFoundException("Success story not found with id: " + id));
 
+        // Save version snapshot before update
+        try {
+            ContentVersion lastVersion = versionRepository.findTopByEntityTypeAndEntityIdOrderByVersionNumberDesc("STORY", id.toString());
+            int nextVersion = lastVersion == null ? 1 : lastVersion.getVersionNumber() + 1;
+            
+            // To avoid Lazy initialization issues, we could just serialize the Response DTO as the snapshot since it contains all data
+            SuccessStoryResponse snapshotDto = mapToResponse(story);
+            String jsonSnapshot = objectMapper.writeValueAsString(snapshotDto);
+
+            ContentVersion cv = ContentVersion.builder()
+                .entityType("STORY")
+                .entityId(id.toString())
+                .contentSnapshot(jsonSnapshot)
+                .versionNumber(nextVersion)
+                .createdBy("ADMIN")
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+            versionRepository.save(cv);
+        } catch (Exception e) {
+            System.err.println("Failed to snapshot story version: " + e.getMessage());
+        }
+
         copyStoryFields(updated, story);
 
         // Update timeline (orphan removal will delete old ones not present in new list)
@@ -97,6 +126,70 @@ public class SuccessStoryService {
 
         SuccessStory saved = storyRepository.save(story);
         return mapToResponse(saved);
+    }
+
+    @Transactional
+    public SuccessStoryResponse rollbackStory(Long id, Long versionId) {
+        ContentVersion version = versionRepository.findById(versionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Version not found"));
+        
+        if (!"STORY".equals(version.getEntityType()) || !id.toString().equals(version.getEntityId())) {
+            throw new IllegalArgumentException("Invalid version for this story");
+        }
+
+        try {
+            // We saved the SuccessStoryResponse as JSON
+            SuccessStoryResponse snapshot = objectMapper.readValue(version.getContentSnapshot(), SuccessStoryResponse.class);
+            
+            // Convert back to SuccessStory entity representation
+            SuccessStory rollbackEntity = new SuccessStory();
+            rollbackEntity.setTitle(snapshot.getTitle());
+            rollbackEntity.setDescription(snapshot.getDescription());
+            rollbackEntity.setImageUrl(snapshot.getImageUrl());
+            rollbackEntity.setCategory(snapshot.getCategory());
+            rollbackEntity.setPublished(snapshot.isPublished());
+            rollbackEntity.setFeatured(snapshot.isFeatured());
+            rollbackEntity.setDisplayOrder(snapshot.getDisplayOrder());
+            rollbackEntity.setLocation(snapshot.getLocation());
+            rollbackEntity.setSubtitle(snapshot.getSubtitle());
+            rollbackEntity.setBeforeImageUrl(snapshot.getBeforeImageUrl());
+            rollbackEntity.setAfterImageUrl(snapshot.getAfterImageUrl());
+            rollbackEntity.setVideoUrl(snapshot.getVideoUrl());
+            rollbackEntity.setTestimonialQuote(snapshot.getTestimonialQuote());
+            rollbackEntity.setTestimonialAuthor(snapshot.getTestimonialAuthor());
+
+            if (snapshot.getTimeline() != null) {
+                rollbackEntity.setTimeline(snapshot.getTimeline().stream().map(m -> {
+                    StoryTimelineMilestone sm = new StoryTimelineMilestone();
+                    sm.setDate(m.getDate());
+                    sm.setTitle(m.getTitle());
+                    sm.setDescription(m.getDescription());
+                    sm.setImageUrl(m.getImageUrl());
+                    sm.setOrderIndex(m.getOrderIndex());
+                    return sm;
+                }).collect(Collectors.toList()));
+            }
+
+            if (snapshot.getMetrics() != null) {
+                rollbackEntity.setMetrics(snapshot.getMetrics().stream().map(m -> {
+                    StoryImpactMetric sim = new StoryImpactMetric();
+                    sim.setLabel(m.getLabel());
+                    sim.setValue(m.getValue());
+                    sim.setIcon(m.getIcon());
+                    sim.setDisplayOrder(m.getDisplayOrder());
+                    return sim;
+                }).collect(Collectors.toList()));
+            }
+
+            return updateStory(id, rollbackEntity);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to rollback story: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContentVersion> getStoryVersions(Long storyId) {
+        return versionRepository.findByEntityTypeAndEntityIdOrderByVersionNumberDesc("STORY", storyId.toString());
     }
 
     @Transactional
@@ -128,6 +221,18 @@ public class SuccessStoryService {
                 asset.setOwnerId(storyId);
                 mediaAssetRepository.save(asset);
             }
+        }
+    }
+
+    @Transactional
+    public void reorderStories(List<Long> storyIds) {
+        for (int i = 0; i < storyIds.size(); i++) {
+            Long id = storyIds.get(i);
+            final int displayOrder = i;
+            storyRepository.findById(id).ifPresent(story -> {
+                story.setDisplayOrder(displayOrder);
+                storyRepository.save(story);
+            });
         }
     }
 
@@ -199,6 +304,20 @@ public class SuccessStoryService {
                                 .orderIndex(m.getOrderIndex())
                                 .build())
                         .collect(Collectors.toList()))
+                .build();
+    }
+
+    private SuccessStorySummaryResponse mapToSummaryResponse(SuccessStory story) {
+        return SuccessStorySummaryResponse.builder()
+                .id(story.getId())
+                .title(story.getTitle())
+                .category(story.getCategory())
+                .published(story.isPublished())
+                .featured(story.isFeatured())
+                .imageUrl(story.getImageUrl())
+                .location(story.getLocation())
+                .subtitle(story.getSubtitle())
+                .displayOrder(story.getDisplayOrder())
                 .build();
     }
 }

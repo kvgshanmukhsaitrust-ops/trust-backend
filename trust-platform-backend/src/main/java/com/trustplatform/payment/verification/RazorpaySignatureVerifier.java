@@ -2,6 +2,7 @@ package com.trustplatform.payment.verification;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public class RazorpaySignatureVerifier {
@@ -15,25 +16,27 @@ public class RazorpaySignatureVerifier {
             String secret) {
 
         try {
+            if (orderId == null || paymentId == null || signature == null || secret == null) {
+                return false;
+            }
 
             String payload = orderId + "|" + paymentId;
 
             Mac mac = Mac.getInstance(HMAC_SHA256);
 
             SecretKeySpec secretKey =
-                    new SecretKeySpec(secret.getBytes(), HMAC_SHA256);
+                    new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_SHA256);
 
             mac.init(secretKey);
 
-            byte[] hash = mac.doFinal(payload.getBytes());
+            byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
 
             String generatedSignature =
                     Base64.getEncoder().encodeToString(hash);
 
             return generatedSignature.equals(signature);
 
-        } catch (Exception e) {
-
+        } catch (java.security.NoSuchAlgorithmException | java.security.InvalidKeyException e) {
             return false;
         }
     }

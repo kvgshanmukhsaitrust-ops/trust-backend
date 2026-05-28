@@ -22,10 +22,10 @@ public class StoryTimelineMilestone {
     @Column(nullable = false)
     private String title;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
     @Column(name = "order_index")

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.trustplatform.audit.AuditAction;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,7 +22,7 @@ public class VolunteerController {
 
     // 1. Submit Application
     @PostMapping("/apply") 
-    @PreAuthorize("hasAnyRole('USER','VOLUNTEER','ADMIN')")
+    @PreAuthorize("hasAuthority('READ_CONTENT')")
     public ResponseEntity<ApiSuccessResponse<VolunteerResponse>> apply(
             @Valid @RequestBody ApplyVolunteerRequest request) {
 
@@ -39,14 +40,15 @@ public class VolunteerController {
 
     // 2. Fetch All Applications (For Admin Dashboard)
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
     public List<VolunteerResponse> getAllApplications() {
         return volunteerService.getAllApplications();
     }
 
     // 3. Update Status (Generic PUT for Admin Dashboard)
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("UPDATE_VOLUNTEER_STATUS")
     public void updateStatus(@PathVariable Long id, @RequestParam String status) {
         if ("approved".equalsIgnoreCase(status)) {
             volunteerService.approveVolunteer(id);
@@ -56,19 +58,21 @@ public class VolunteerController {
     }
 
     @PatchMapping("/{id}/approve")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("APPROVE_VOLUNTEER")
     public void approve(@PathVariable Long id) {
         volunteerService.approveVolunteer(id);
     }
 
     @PatchMapping("/{id}/reject")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("REJECT_VOLUNTEER")
     public void reject(@PathVariable Long id) {
         volunteerService.rejectVolunteer(id);
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasAnyRole('USER','VOLUNTEER','ADMIN')")
+    @PreAuthorize("hasAuthority('READ_CONTENT')")
     public ResponseEntity<ApiSuccessResponse<List<VolunteerResponse>>> getMyApplications(
             org.springframework.security.core.Authentication authentication) {
 

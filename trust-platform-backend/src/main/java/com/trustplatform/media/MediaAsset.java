@@ -35,6 +35,17 @@ public class MediaAsset {
     @Column(name = "order_index")
     private int orderIndex = 0;
 
+    @Column(name = "public_id")
+    private String publicId;
+
+    private Integer width;
+    private Integer height;
+
+    @Column(name = "aspect_ratio")
+    private Double aspectRatio;
+
+    private Double duration;
+
     @Column(name = "uploaded_at")
     private LocalDateTime uploadedAt;
 

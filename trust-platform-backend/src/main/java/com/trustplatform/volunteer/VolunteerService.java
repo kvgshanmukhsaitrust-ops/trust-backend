@@ -15,6 +15,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.trustplatform.notification.NotificationService;
  
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ public class VolunteerService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
+    private final NotificationService notificationService;
  
     // ============================
     // APPLY FOR EVENT
@@ -61,6 +63,10 @@ public class VolunteerService {
         volunteerRepository.save(application);
         log.info("Volunteer application submitted: userId={}, eventId={}",
                 user.getId(), event.getId());
+
+        // Operational Notification: notify admins of the new application
+        notificationService.sendToAdmins("New Volunteer Application", 
+                "New volunteer application submitted by " + user.getFullName() + " for event " + event.getTitle(), "APPROVAL");
  
         return mapToResponse(application);
     }
@@ -84,6 +90,10 @@ public class VolunteerService {
         volunteerRepository.save(application);
         log.info("Volunteer approved: applicationId={}, user={}",
                 id, application.getUser().getEmail());
+
+        // Operational Notification: notify volunteer of approval
+        notificationService.sendToUser(application.getUser().getEmail(), "Volunteer Application Approved", 
+                "Congratulations! Your application to participate in the event '" + application.getEvent().getTitle() + "' has been approved.", "APPROVAL");
  
         sendStatusEmail(application, "APPROVED");
     }
@@ -107,6 +117,10 @@ public class VolunteerService {
         volunteerRepository.save(application);
         log.info("Volunteer rejected: applicationId={}, user={}",
                 id, application.getUser().getEmail());
+
+        // Operational Notification: notify volunteer of rejection
+        notificationService.sendToUser(application.getUser().getEmail(), "Volunteer Application Update", 
+                "Your application to participate in the event '" + application.getEvent().getTitle() + "' was not accepted at this time.", "APPROVAL");
  
         sendStatusEmail(application, "REJECTED");
     }

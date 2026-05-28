@@ -1,0 +1,15 @@
+package com.trustplatform.user;
+
+public enum Permission {
+    READ_CONTENT,
+    SUBMIT_VOLUNTEER,
+    MANAGE_EVENTS,
+    MANAGE_STORIES,
+    MANAGE_MEMBERS,
+    MANAGE_SETTINGS,
+    VIEW_AUDIT_LOGS,
+    MANAGE_MEDIA,
+    VIEW_ANALYTICS,
+    MANAGE_USERS,
+    EXPORT_REPORTS
+}

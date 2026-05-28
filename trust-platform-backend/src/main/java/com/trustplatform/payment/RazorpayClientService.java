@@ -23,4 +23,8 @@ public class RazorpayClientService {
 
         return razorpayClient.orders.create(options);
     }
-}
+
+    public RazorpayClient getRazorpayClient() {
+        return razorpayClient;
+    }
+}

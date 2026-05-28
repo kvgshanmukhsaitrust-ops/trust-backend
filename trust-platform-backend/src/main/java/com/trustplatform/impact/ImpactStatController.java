@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.trustplatform.audit.AuditAction;
 
 import java.util.List;
 
@@ -28,14 +29,16 @@ public class ImpactStatController {
 
     // ── ADMIN: create ─────────────────────────────────────────────
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_SETTINGS')")
+    @AuditAction("CREATE_IMPACT_STAT")
     public ResponseEntity<ImpactStatResponse> create(@RequestBody ImpactStat stat) {
         return ResponseEntity.ok(impactStatService.create(stat));
     }
 
     // ── ADMIN: update counter value only (existing API) ───────────
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_SETTINGS')")
+    @AuditAction("UPDATE_IMPACT_STAT_VALUE")
     public ResponseEntity<ImpactStatResponse> updateValue(
             @PathVariable Long id,
             @RequestBody Long newValue) {
@@ -44,7 +47,8 @@ public class ImpactStatController {
 
     // ── ADMIN: update full stat (icon, unit, category, order) ─────
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_SETTINGS')")
+    @AuditAction("UPDATE_IMPACT_STAT")
     public ResponseEntity<ImpactStatResponse> updateFull(
             @PathVariable Long id,
             @RequestBody ImpactStat patch) {
@@ -53,7 +57,8 @@ public class ImpactStatController {
 
     // ── ADMIN: delete ─────────────────────────────────────────────
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MANAGE_SETTINGS')")
+    @AuditAction("DELETE_IMPACT_STAT")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         impactStatService.delete(id);
         return ResponseEntity.noContent().build();

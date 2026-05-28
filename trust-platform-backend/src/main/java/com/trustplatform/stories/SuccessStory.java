@@ -25,10 +25,10 @@ public class SuccessStory extends BaseAuditableEntity {
     private String title;
 
     @NotBlank(message = "Story description is required")
-    @Column(length = 2000, nullable = false)
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String description;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
     private String category;
@@ -45,16 +45,16 @@ public class SuccessStory extends BaseAuditableEntity {
     @Column(length = 1000)
     private String subtitle;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String beforeImageUrl;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String afterImageUrl;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String videoUrl;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String testimonialQuote;
     private String testimonialAuthor;
 

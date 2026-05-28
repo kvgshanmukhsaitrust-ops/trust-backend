@@ -51,7 +51,14 @@ public class User extends BaseAuditableEntity implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        java.util.List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        if (role.getPermissions() != null) {
+            for (Permission p : role.getPermissions()) {
+                authorities.add(new SimpleGrantedAuthority(p.name()));
+            }
+        }
+        return authorities;
     }
 
     @Override

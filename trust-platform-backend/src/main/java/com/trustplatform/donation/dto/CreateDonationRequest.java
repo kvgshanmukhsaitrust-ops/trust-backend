@@ -24,4 +24,9 @@ public class CreateDonationRequest {
     private String message;
 
     private Long eventId; // optional
+
+    @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]{1}$", message = "Invalid PAN format. Must be 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).")
+    private String donorPan;
+
+    private String donorAddress;
 }

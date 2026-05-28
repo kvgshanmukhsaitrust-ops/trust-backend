@@ -55,7 +55,7 @@ public class SecurityConfig {
                 // =============================================
                 .authorizeHttpRequests(auth -> auth
                         // Auth endpoints — always public
-                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**", "/ws/**").permitAll()
 
                         // Public read-only content
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
@@ -67,24 +67,24 @@ public class SecurityConfig {
                         // Public contact form
                         .requestMatchers(HttpMethod.POST, "/api/messages").permitAll()
 
-                        // Admin-only: content mutations + admin namespace
-                        .requestMatchers(HttpMethod.POST,   "/api/events/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/events/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH,  "/api/events/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,   "/api/success-stories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/success-stories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH,  "/api/success-stories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/success-stories/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,   "/api/members/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/members/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH,  "/api/members/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/members/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST,   "/api/impact-stats/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,    "/api/impact-stats/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH,  "/api/impact-stats/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/impact-stats/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // Admin-only: content mutations + admin namespace (delegated to @PreAuthorize on controllers)
+                        .requestMatchers(HttpMethod.POST,   "/api/events/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT,    "/api/events/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH,  "/api/events/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/events/**").authenticated()
+                        .requestMatchers(HttpMethod.POST,   "/api/success-stories/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT,    "/api/success-stories/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH,  "/api/success-stories/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/success-stories/**").authenticated()
+                        .requestMatchers(HttpMethod.POST,   "/api/members/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT,    "/api/members/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH,  "/api/members/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/members/**").authenticated()
+                        .requestMatchers(HttpMethod.POST,   "/api/impact-stats/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT,    "/api/impact-stats/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH,  "/api/impact-stats/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/impact-stats/**").authenticated()
+                        .requestMatchers("/api/admin/**").authenticated()
 
                         // Volunteer: any authenticated user can apply
                         .requestMatchers(HttpMethod.POST, "/api/volunteers/apply").authenticated()

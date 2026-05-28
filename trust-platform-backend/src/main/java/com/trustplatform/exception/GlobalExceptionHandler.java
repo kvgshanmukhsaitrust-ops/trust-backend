@@ -3,6 +3,9 @@ package com.trustplatform.exception;
 import com.trustplatform.common.api.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import com.trustplatform.audit.AuditService;
+import com.trustplatform.notification.NotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,7 +19,11 @@ import java.util.Map;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final AuditService auditService;
+    private final NotificationService notificationService;
 
     // ==============================
     // Validation Errors (@Valid DTO)
@@ -32,6 +39,12 @@ public class GlobalExceptionHandler {
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
+
+        // Operational Audit capture for validation failures
+        String details = "Validation failed for URI: " + request.getRequestURI() + 
+                         ". Invalid fields: " + errors.keySet().toString() + 
+                         ". Detailed errors: " + errors.toString();
+        logFailedAudit("VALIDATION_FAILURE", "Validation", details, "Validation failed", request);
 
         ApiResponse<Object> response = ApiResponse.error(
                 "Validation failed",
@@ -141,7 +154,78 @@ public class GlobalExceptionHandler {
             BadCredentialsException ex,
             HttpServletRequest request) {
 
+        logFailedAudit("LOGIN_FAILED", "Auth", "Failed login attempt with invalid credentials.", ex.getMessage(), request);
         return buildResponse("Invalid email or password", HttpStatus.UNAUTHORIZED);
+    }
+
+    // ==============================
+    // Security Violations (Access Denied)
+    // ==============================
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAccessDeniedException(
+            org.springframework.security.access.AccessDeniedException ex,
+            HttpServletRequest request) {
+
+        String details = "Access denied for URI: " + request.getRequestURI() + 
+                         " [" + request.getMethod() + "]. User lacks required authority.";
+        logFailedAudit("SECURITY_VIOLATION", "Security", details, ex.getMessage(), request);
+
+        ApiResponse<Object> response = ApiResponse.error(
+                "Access denied. You do not have permission to perform this action.",
+                HttpStatus.FORBIDDEN.value()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    // ==============================
+    // Audit Logging Helpers
+    // ==============================
+
+    private void logFailedAudit(String action, String targetResource, String details, String errorMsg, HttpServletRequest request) {
+        try {
+            String performedBy = "anonymous";
+            if (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null &&
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
+                performedBy = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+            }
+            
+            String userAgent = request.getHeader("User-Agent");
+            if (userAgent != null && userAgent.length() > 500) {
+                userAgent = userAgent.substring(0, 497) + "...";
+            }
+            
+            String ipAddress = "127.0.0.1";
+            String xfHeader = request.getHeader("X-Forwarded-For");
+            if (xfHeader != null && !xfHeader.trim().isEmpty()) {
+                ipAddress = xfHeader.split(",")[0].trim();
+            } else {
+                ipAddress = request.getRemoteAddr();
+            }
+            
+            // Mask raw credentials to prevent session leaks
+            String sanitizedDetails = sanitize(details);
+            String sanitizedErrorMsg = sanitize(errorMsg);
+            
+            auditService.log(action, performedBy, targetResource, sanitizedDetails, ipAddress, userAgent, "FAILED", sanitizedErrorMsg);
+
+            // Trigger real-time WebSocket alert to Admins upon unauthorized access attempts
+            if ("SECURITY_VIOLATION".equals(action)) {
+                notificationService.sendToAdmins("Security Violation Warning", 
+                        "Security warning: Unauthorized access attempt blocked at URI: " + request.getRequestURI() + " [" + request.getMethod() + "] for user: " + performedBy, "SYSTEM");
+            }
+        } catch (Exception e) {
+            log.error("Failed to write global exception handler audit log", e);
+        }
+    }
+
+    private String sanitize(String input) {
+        if (input == null) return null;
+        // Case-insensitive regex masking for keys
+        String masked = input.replaceAll("(?i)(\"(?:password|passwordConfirm|token|secret|refreshToken|mailPassword|razorpaySecret)\"\\s*:\\s*\")[^\"]+(\")", "$1[MASKED]$2");
+        masked = masked.replaceAll("(?i)(\"(?:password|passwordConfirm|token|secret|refreshToken|mailPassword|razorpaySecret)\"\\s*:\\s*)[^,}\\s]+", "$1\"[MASKED]\"");
+        return masked;
     }
 
     // ==============================

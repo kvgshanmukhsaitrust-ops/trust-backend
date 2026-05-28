@@ -3,6 +3,7 @@ package com.trustplatform.setting;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.trustplatform.audit.AuditAction;
 
 import java.util.HashMap;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/settings")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('MANAGE_SETTINGS')")
 public class AdminSettingController {
 
     private final SystemSettingService settingService;
@@ -24,6 +25,7 @@ public class AdminSettingController {
 
     // Legacy endpoint: update hero image
     @PutMapping("/hero-image")
+    @AuditAction("UPDATE_HERO_IMAGE")
     public ResponseEntity<String> updateHeroImage(@RequestBody(required = false) String newUrl) {
         String cleaned = newUrl == null ? "" : newUrl.trim();
         SystemSetting updated = settingService.upsertSetting("HOME_HERO_IMAGE", cleaned);
@@ -41,6 +43,7 @@ public class AdminSettingController {
 
     // Upsert any setting key — value comes as plain JSON string
     @PutMapping("/{key}")
+    @AuditAction("UPSERT_SETTING")
     public ResponseEntity<String> upsertSetting(
             @PathVariable String key,
             @RequestBody(required = false) String value) {
@@ -55,6 +58,7 @@ public class AdminSettingController {
 
     // Delete a setting key
     @DeleteMapping("/{key}")
+    @AuditAction("DELETE_SETTING")
     public ResponseEntity<Void> deleteSetting(@PathVariable String key) {
         settingRepository.findBySettingKey(key)
                 .ifPresent(settingRepository::delete);

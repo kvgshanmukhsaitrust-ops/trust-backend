@@ -23,7 +23,7 @@ public class TrustMember {
     @Column(length = 1000)
     private String bio; // Detailed text for the back of the card
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String imageUrl; // For the profile avatar
 
     @Column(length = 1000)

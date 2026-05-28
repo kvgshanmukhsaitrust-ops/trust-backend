@@ -19,5 +19,17 @@ public class DonationResponse {
     private String message;
     private DonationStatus status;
     private String receiptNumber;
+    private String receiptUuid;
+    private String receiptPdfPath;
     private LocalDateTime createdAt;
+    private LocalDateTime refundDate;
+    private String refundReason;
+    private String paymentMethod;
+    private String transactionId;
+    private String eventTitle;
+    // PAN is always masked - never expose raw PAN in response
+    private String donorPanMasked; // e.g. XXXXX1234F
+    private boolean hasPan;
+    private boolean hasAddress;
+    private String correlationId;
 }

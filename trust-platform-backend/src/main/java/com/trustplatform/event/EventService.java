@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,6 +61,34 @@ public class EventService {
     }
 
     @Transactional
+    public void updateEventMedia(Long id, List<EventMedia> mediaList) {
+        Event event = eventRepository.findById(id)
+                .filter(e -> !e.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found: " + id));
+
+        event.getMediaList().clear();
+        if (mediaList != null) {
+            for (EventMedia media : mediaList) {
+                media.setEvent(event);
+                event.getMediaList().add(media);
+            }
+        }
+        eventRepository.save(event);
+    }
+
+    @Transactional
+    public void reorderEvents(List<Long> eventIds) {
+        for (int i = 0; i < eventIds.size(); i++) {
+            Long id = eventIds.get(i);
+            final int displayOrder = i;
+            eventRepository.findById(id).ifPresent(event -> {
+                event.setDisplayOrder(displayOrder);
+                eventRepository.save(event);
+            });
+        }
+    }
+
+    @Transactional
     public EventResponse togglePublish(Long id, boolean publish) {
         Event event = eventRepository.findById(id)
                 .filter(e -> !e.isDeleted())
@@ -81,18 +110,18 @@ public class EventService {
 
     // Public: only published events
     @Transactional(readOnly = true)
-    public Page<EventResponse> getPublishedEvents(int page, int size) {
+    public Page<EventSummaryResponse> getPublishedEvents(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("eventDate").descending()));
         return eventRepository.findByDeletedFalseAndPublishedTrue(pageable)
-                .map(this::mapToResponse);
+                .map(this::mapToSummaryResponse);
     }
 
     // Admin: all events including unpublished
     @Transactional(readOnly = true)
-    public Page<EventResponse> getAllEvents(int page, int size) {
+    public Page<EventSummaryResponse> getAllEvents(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("eventDate").descending()));
         return eventRepository.findByDeletedFalse(pageable)
-                .map(this::mapToResponse);
+                .map(this::mapToSummaryResponse);
     }
 
     @Transactional(readOnly = true)
@@ -192,6 +221,35 @@ public class EventService {
                                         .displayOrder(f.getDisplayOrder())
                                         .build())
                                 .collect(Collectors.toList()))
+                .build();
+    }
+
+    public EventSummaryResponse mapToSummaryResponse(Event event) {
+        EventStatus dynamicStatus = event.getStatus();
+        if (event.getEventDate() != null && dynamicStatus != EventStatus.CANCELLED) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            java.time.LocalDate eventDay = event.getEventDate().toLocalDate();
+            if (eventDay.isBefore(today)) {
+                dynamicStatus = EventStatus.COMPLETED;
+            } else if (eventDay.isEqual(today)) {
+                dynamicStatus = EventStatus.ONGOING;
+            } else {
+                dynamicStatus = EventStatus.UPCOMING;
+            }
+        }
+
+        return EventSummaryResponse.builder()
+                .id(event.getId())
+                .title(event.getTitle())
+                .location(event.getLocation())
+                .category(event.getCategory())
+                .eventDate(event.getEventDate())
+                .status(dynamicStatus)
+                .published(event.isPublished())
+                .featured(event.isFeatured())
+                .coverImageUrl(event.getCoverImageUrl())
+                .bannerUrl(event.getBannerUrl())
+                .subtitle(event.getSubtitle())
                 .build();
     }
 }

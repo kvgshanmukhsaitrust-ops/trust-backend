@@ -17,7 +17,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('VIEW_ANALYTICS')")
     public ResponseEntity<ApiSuccessResponse<DashboardSummaryResponse>> getDashboard() {
 
         DashboardSummaryResponse response = dashboardService.getDashboardSummary();

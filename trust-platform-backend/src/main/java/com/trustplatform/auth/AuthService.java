@@ -27,7 +27,7 @@ public class AuthService {
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already registered");
+            throw new com.trustplatform.exception.DuplicateResourceException("Email already registered");
         }
         String fullName = request.getFullName();
         if (fullName == null || fullName.trim().isEmpty()) {

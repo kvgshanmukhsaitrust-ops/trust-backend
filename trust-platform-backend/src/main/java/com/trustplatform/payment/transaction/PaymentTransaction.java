@@ -29,6 +29,20 @@ public class PaymentTransaction extends BaseAuditableEntity {
     @Enumerated(EnumType.STRING)
     private PaymentStatus status;
     
+    @Column(nullable = false, unique = true, length = 100)
+    private String correlationId; // strictly unique correlation ID propagating across all flows
+
+    private java.math.BigDecimal amount;
+
+    private String paymentMethod;
+
+    @Column(length = 2000)
+    private String errorDetails;
+
+    @Column(length = 2000)
+    private String metadata; // additional reconciliation json
+
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "donation_id", nullable = false)
     private Donation donation;
 }

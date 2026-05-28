@@ -1,0 +1,110 @@
+version: '3.9'
+
+# =============================================================================
+# K.V.G Shanmuka Sai Charitable Trust — Production Docker Compose
+# Usage: cp .env.example .env && nano .env && docker compose up -d
+# =============================================================================
+
+services:
+
+  # ── MySQL Database ──────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: trust_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-trustplatform}
+      MYSQL_USER: ${DB_USER:-trustuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Spring Boot Backend ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./trust-platform-backend
+      dockerfile: Dockerfile
+    container_name: trust_backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # Database
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_NAME:-trustplatform}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-trustuser}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      # Security
+      JWT_SECRET: ${JWT_SECRET}
+      # Payment Gateway (use 'dummy' for sandbox)
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-dummy}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-dummy}
+      # Cloudinary Media
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      # Email SMTP
+      SPRING_MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+      # PDF Receipts
+      APP_RECEIPTS_STORAGE_PATH: /app/receipts
+      # AI Providers (optional)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: prod
+    volumes:
+      - receipt_storage:/app/receipts
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/public/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # ── React Frontend (Nginx) ──────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ../website
+      dockerfile: Dockerfile
+    container_name: trust_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/index.html"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/mysql
+  receipt_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/receipts

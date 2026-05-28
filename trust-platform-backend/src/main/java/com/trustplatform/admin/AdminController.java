@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.trustplatform.audit.AuditAction;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final AdminService adminService;
@@ -25,6 +25,8 @@ public class AdminController {
     // UPDATE USER ROLE
     // ===============================
     @PutMapping("/users/{userId}/role")
+    @PreAuthorize("hasAuthority('MANAGE_USERS')")
+    @AuditAction("UPDATE_USER_ROLE")
     public ResponseEntity<ApiSuccessResponse<String>> updateUserRole(
             @PathVariable Long userId,
             @RequestBody UpdateUserRoleRequest request) {
@@ -45,6 +47,7 @@ public class AdminController {
     // GET ALL USERS
     // ===============================
     @GetMapping("/users")
+    @PreAuthorize("hasAuthority('MANAGE_USERS')")
     public ResponseEntity<ApiSuccessResponse<List<User>>> getAllUsers() {
 
         return ResponseEntity.ok(
@@ -61,6 +64,7 @@ public class AdminController {
     // GET ALL VOLUNTEERS
     // ===============================
     @GetMapping("/volunteers")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
     public ResponseEntity<ApiSuccessResponse<List<VolunteerApplication>>> getVolunteers() {
 
         return ResponseEntity.ok(
@@ -77,6 +81,7 @@ public class AdminController {
     // GET ALL DONATIONS
     // ===============================
     @GetMapping("/donations")
+    @PreAuthorize("hasAuthority('VIEW_ANALYTICS')")
     public ResponseEntity<ApiSuccessResponse<List<Donation>>> getDonations() {
 
         return ResponseEntity.ok(
