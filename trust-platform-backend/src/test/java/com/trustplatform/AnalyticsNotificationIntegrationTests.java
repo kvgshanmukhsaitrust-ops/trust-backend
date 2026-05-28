@@ -8,6 +8,7 @@ import com.trustplatform.donation.DonationStatus;
 import com.trustplatform.notification.Notification;
 import com.trustplatform.notification.NotificationRepository;
 import com.trustplatform.notification.NotificationService;
+import com.trustplatform.payment.transaction.PaymentTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ public class AnalyticsNotificationIntegrationTests {
     private DonationRepository donationRepository;
 
     @Autowired
+    private PaymentTransactionRepository paymentTransactionRepository;
+
+    @Autowired
     private NotificationService notificationService;
 
     @Autowired
@@ -49,6 +53,7 @@ public class AnalyticsNotificationIntegrationTests {
     public void setup() {
         // Clean up repositories manually to avoid @Transactional isolation mismatch with @Async tasks
         notificationRepository.deleteAll();
+        paymentTransactionRepository.deleteAll();
         donationRepository.deleteAll();
     }
 
