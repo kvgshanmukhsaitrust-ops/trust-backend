@@ -55,7 +55,7 @@ public class SecurityConfig {
                 // =============================================
                 .authorizeHttpRequests(auth -> auth
                         // Auth endpoints — always public
-                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**", "/ws/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**", "/ws/**", "/actuator/health").permitAll()
 
                         // Public read-only content
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
