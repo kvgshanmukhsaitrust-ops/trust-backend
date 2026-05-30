@@ -39,11 +39,17 @@ public class DataInitializer implements CommandLineRunner {
     private final VolunteerRepository volunteerRepository;
     private final AuditLogRepository auditLogRepository;
     private final NotificationRepository notificationRepository;
+    private final com.trustplatform.impact.ImpactStatRepository impactStatRepository;
+    private final com.trustplatform.member.TrustMemberRepository trustMemberRepository;
+    private final com.trustplatform.stories.SuccessStoryRepository successStoryRepository;
 
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder,
                            EventRepository eventRepository, DonationRepository donationRepository,
                            VolunteerRepository volunteerRepository, AuditLogRepository auditLogRepository,
-                           NotificationRepository notificationRepository) {
+                           NotificationRepository notificationRepository,
+                           com.trustplatform.impact.ImpactStatRepository impactStatRepository,
+                           com.trustplatform.member.TrustMemberRepository trustMemberRepository,
+                           com.trustplatform.stories.SuccessStoryRepository successStoryRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.eventRepository = eventRepository;
@@ -51,6 +57,9 @@ public class DataInitializer implements CommandLineRunner {
         this.volunteerRepository = volunteerRepository;
         this.auditLogRepository = auditLogRepository;
         this.notificationRepository = notificationRepository;
+        this.impactStatRepository = impactStatRepository;
+        this.trustMemberRepository = trustMemberRepository;
+        this.successStoryRepository = successStoryRepository;
     }
 
     @Override
@@ -292,6 +301,86 @@ public class DataInitializer implements CommandLineRunner {
                     .category("APPROVAL")
                     .isRead(false)
                     .createdAt(LocalDateTime.now().minusMinutes(30))
+                    .build());
+        }
+
+        // 10. Seed Core Impact Stats
+        if (impactStatRepository.count() == 0) {
+            logger.info("Seeding community impact statistics.");
+            impactStatRepository.save(com.trustplatform.impact.ImpactStat.builder()
+                    .category("WATER")
+                    .currentValue(120L)
+                    .unit("Filters Distributed")
+                    .icon("water_drop")
+                    .featured(true)
+                    .displayOrder(1)
+                    .build());
+
+            impactStatRepository.save(com.trustplatform.impact.ImpactStat.builder()
+                    .category("STUDENTS")
+                    .currentValue(450L)
+                    .unit("Children Coached")
+                    .icon("school")
+                    .featured(true)
+                    .displayOrder(2)
+                    .build());
+
+            impactStatRepository.save(com.trustplatform.impact.ImpactStat.builder()
+                    .category("TREES")
+                    .currentValue(2500L)
+                    .unit("Saplings Planted")
+                    .icon("forest")
+                    .featured(true)
+                    .displayOrder(3)
+                    .build());
+        }
+
+        // 11. Seed Team / Trust Members
+        if (trustMemberRepository.count() == 0) {
+            logger.info("Seeding key trust operational members.");
+            trustMemberRepository.save(com.trustplatform.member.TrustMember.builder()
+                    .name("Dr. K.V.G. Shanmuka Sai")
+                    .role("Founder & Chairman")
+                    .tagline("Dedicated to transforming lives through selfless service and community outreach.")
+                    .bio("Dr. K.V.G. Shanmuka Sai is an eminent visionary and philanthropist with over 20 years of active social work experience, guiding education and environmental projects.")
+                    .imageUrl("/hero-portrait.png")
+                    .twitterUrl("https://twitter.com")
+                    .linkedinUrl("https://linkedin.com")
+                    .displayOrder(1)
+                    .published(true)
+                    .featured(true)
+                    .build());
+
+            trustMemberRepository.save(com.trustplatform.member.TrustMember.builder()
+                    .name("Smt. K. Sarada")
+                    .role("Managing Trustee")
+                    .tagline("Empowering women and promoting clean water programs.")
+                    .bio("Smt. K. Sarada manages the daily operations of the clean water distribution and student support systems, focusing on women empowerment.")
+                    .imageUrl("/logo.png")
+                    .twitterUrl("https://twitter.com")
+                    .linkedinUrl("https://linkedin.com")
+                    .displayOrder(2)
+                    .published(true)
+                    .featured(true)
+                    .build());
+        }
+
+        // 12. Seed Success Stories
+        if (successStoryRepository.count() == 0) {
+            logger.info("Seeding historical NGO success stories.");
+            successStoryRepository.save(com.trustplatform.stories.SuccessStory.builder()
+                    .title("Transforming Suburbs through Pure Water")
+                    .subtitle("Over 1,200 rural families received clean drinking water")
+                    .description("The Pure Water Filtration Outreach project has successfully installed high-grade filtration kits, eradicating waterborne diseases in rural Nagpur suburbs.")
+                    .category("Water Outreach")
+                    .location("Nagpur Suburbs")
+                    .imageUrl("https://images.unsplash.com/photo-1541252260730-0412e8e2108e?q=80&w=600")
+                    .beforeImageUrl("https://images.unsplash.com/photo-1538300342682-ee57afb90d43?q=80&w=600")
+                    .afterImageUrl("https://images.unsplash.com/photo-1541252260730-0412e8e2108e?q=80&w=600")
+                    .published(true)
+                    .featured(true)
+                    .displayOrder(1)
+                    .deleted(false)
                     .build());
         }
 
