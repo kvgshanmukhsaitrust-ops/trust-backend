@@ -29,6 +29,9 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:*}")
+    private String frontendUrl;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -125,5 +128,33 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
+        
+        java.util.List<String> patterns = new java.util.ArrayList<>();
+        patterns.add("https://trust-frontend-delta.vercel.app");
+        patterns.add("http://localhost:5173");
+        patterns.add("http://localhost:3000");
+        
+        if (frontendUrl != null && !frontendUrl.trim().isEmpty()) {
+            for (String origin : frontendUrl.split(",")) {
+                String trimmed = origin.trim();
+                if (!patterns.contains(trimmed)) {
+                    patterns.add(trimmed);
+                }
+            }
+        }
+        
+        configuration.setAllowedOriginPatterns(patterns);
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(java.util.List.of("*"));
+        configuration.setAllowCredentials(true);
+        
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
     }
 }
