@@ -23,7 +23,6 @@ public class PaymentController {
     // CREATE RAZORPAY ORDER
     // =========================================
     @PostMapping("/create-order/{donationId}")
-    @PreAuthorize("hasAuthority('READ_CONTENT')")
     public ResponseEntity<ApiSuccessResponse<CreateOrderResponse>> createOrder(
             @PathVariable Long donationId) throws Exception {
 

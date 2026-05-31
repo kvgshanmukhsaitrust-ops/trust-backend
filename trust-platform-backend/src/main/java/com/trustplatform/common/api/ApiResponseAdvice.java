@@ -19,6 +19,10 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
+        // Skip wrapping if the return type is a Resource (e.g., file downloads)
+        if (org.springframework.core.io.Resource.class.isAssignableFrom(returnType.getParameterType())) {
+            return false;
+        }
         return true;
     }
 
@@ -33,6 +37,11 @@ public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
         // Skip wrapping if it is already wrapped
         if (body instanceof ApiResponse) {
+            return body;
+        }
+
+        // Skip wrapping if it is a Resource (e.g., file downloads)
+        if (body instanceof org.springframework.core.io.Resource) {
             return body;
         }
 

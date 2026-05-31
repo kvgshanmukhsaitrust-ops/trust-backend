@@ -37,7 +37,6 @@ public class DonationController {
     // CREATE DONATION
     // =========================================
     @PostMapping
-    @PreAuthorize("hasAuthority('READ_CONTENT')")
     public ResponseEntity<ApiSuccessResponse<DonationResponse>> createDonation(
             @Valid @RequestBody CreateDonationRequest request,
             Authentication authentication) {

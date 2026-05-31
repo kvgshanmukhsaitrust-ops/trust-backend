@@ -60,8 +60,9 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Donation not found"));
 
         String orderId;
+        boolean isSandbox = "dev_razorpay_key".equals(keyId) || "dummy".equals(keyId) || keyId == null || keyId.trim().isEmpty();
         // Sandbox checkout simulation mode check
-        if ("dev_razorpay_key".equals(keyId) || "dummy".equals(keyId)) {
+        if (isSandbox) {
             orderId = "order_mock_" + UUID.randomUUID().toString().substring(0, 8);
             log.info("[PaymentService] Simulated order created for Sandbox checkout: {}", orderId);
         } else {
@@ -82,7 +83,7 @@ public class PaymentService {
                 .gatewayOrderId(orderId)
                 .amount(donation.getAmount())
                 .status(PaymentStatus.CREATED)
-                .metadata("{\"event\":\"ORDER_CREATED\",\"simulated\":" + ("order_mock_".startsWith(orderId) ? "true" : "false") + "}")
+                .metadata("{\"event\":\"ORDER_CREATED\",\"simulated\":" + (isSandbox ? "true" : "false") + "}")
                 .build();
         paymentTransactionRepository.save(tx);
 
@@ -90,7 +91,7 @@ public class PaymentService {
                 .orderId(orderId)
                 .amount(donation.getAmount().multiply(BigDecimal.valueOf(100)).longValue())
                 .currency("INR")
-                .key(keyId)
+                .key(isSandbox ? "dummy" : keyId)
                 .build();
     }
 
