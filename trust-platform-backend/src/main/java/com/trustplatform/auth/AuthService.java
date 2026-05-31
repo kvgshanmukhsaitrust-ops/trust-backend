@@ -36,7 +36,15 @@ public class AuthService {
         Role userRole = Role.USER;
         if (request.getRole() != null && !request.getRole().trim().isEmpty()) {
             try {
-                userRole = Role.valueOf(request.getRole().toUpperCase());
+                Role parsedRole = Role.valueOf(request.getRole().toUpperCase());
+                if (parsedRole == Role.ADMIN) {
+                    if (userRepository.existsByRole(Role.ADMIN)) {
+                        throw new com.trustplatform.exception.BadRequestException("An administrator account already exists. Registration of additional administrators is disabled.");
+                    }
+                }
+                userRole = parsedRole;
+            } catch (com.trustplatform.exception.BadRequestException e) {
+                throw e;
             } catch (Exception e) {
                 userRole = Role.USER;
             }
