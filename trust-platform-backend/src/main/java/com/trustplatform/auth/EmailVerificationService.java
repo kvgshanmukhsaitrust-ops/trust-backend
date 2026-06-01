@@ -35,8 +35,16 @@ public class EmailVerificationService {
 
         tokenRepository.save(token);
 
+        String backendBaseUrl = "http://localhost:8080";
+        try {
+            backendBaseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder
+                    .fromCurrentContextPath().build().toUriString();
+        } catch (Exception e) {
+            // Fallback in non-web thread contexts
+        }
+
         String verificationLink =
-                "http://localhost:8080/api/auth/verify?token=" + tokenValue;
+                backendBaseUrl + "/api/auth/verify?token=" + tokenValue;
 
         System.out.println("==================================================");
         System.out.println("EMAIL VERIFICATION LINK GENERATED FOR " + user.getEmail() + ":");

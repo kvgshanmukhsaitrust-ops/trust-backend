@@ -35,7 +35,7 @@ public class PasswordResetService {
         return urls[0].trim();
     }
 
-    public void requestPasswordReset(ForgotPasswordRequest request) {
+    public void requestPasswordReset(ForgotPasswordRequest request, String origin) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
@@ -51,8 +51,9 @@ public class PasswordResetService {
 
         tokenRepository.save(resetToken);
 
+        String frontendBaseUrl = (origin != null && !origin.trim().isEmpty()) ? origin : getRedirectBaseUrl();
         String resetLink =
-                getRedirectBaseUrl() + "/forgot-password?token=" + token;
+                frontendBaseUrl + "/forgot-password?token=" + token;
 
         System.out.println("==================================================");
         System.out.println("PASSWORD RESET LINK GENERATED FOR " + user.getEmail() + ":");
