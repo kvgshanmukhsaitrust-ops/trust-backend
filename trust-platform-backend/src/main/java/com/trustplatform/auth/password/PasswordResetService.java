@@ -24,6 +24,17 @@ public class PasswordResetService {
     private final EmailService emailService;
     private final EmailTemplateBuilder emailTemplateBuilder;
 
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
+    private String getRedirectBaseUrl() {
+        if (frontendUrl == null || frontendUrl.trim().isEmpty() || "*".equals(frontendUrl.trim())) {
+            return "http://localhost:5173";
+        }
+        String[] urls = frontendUrl.split(",");
+        return urls[0].trim();
+    }
+
     public void requestPasswordReset(ForgotPasswordRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -41,7 +52,12 @@ public class PasswordResetService {
         tokenRepository.save(resetToken);
 
         String resetLink =
-                "http://localhost:3000/reset-password?token=" + token;
+                getRedirectBaseUrl() + "/forgot-password?token=" + token;
+
+        System.out.println("==================================================");
+        System.out.println("PASSWORD RESET LINK GENERATED FOR " + user.getEmail() + ":");
+        System.out.println(resetLink);
+        System.out.println("==================================================");
 
         String emailBody =
                 emailTemplateBuilder.buildPasswordResetEmail(

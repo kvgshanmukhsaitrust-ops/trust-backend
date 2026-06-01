@@ -38,6 +38,11 @@ public class EmailVerificationService {
         String verificationLink =
                 "http://localhost:8080/api/auth/verify?token=" + tokenValue;
 
+        System.out.println("==================================================");
+        System.out.println("EMAIL VERIFICATION LINK GENERATED FOR " + user.getEmail() + ":");
+        System.out.println(verificationLink);
+        System.out.println("==================================================");
+
         String message =
                 "Hi " + user.getFullName() + ",\n\n" +
                 "Please verify your email by clicking the link below:\n\n" +
