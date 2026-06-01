@@ -23,6 +23,9 @@ public class EmailService {
     @org.springframework.beans.factory.annotation.Value("${spring.mail.password}")
     private String mailPassword;
 
+    @org.springframework.beans.factory.annotation.Value("${spring.mail.port:587}")
+    private int mailPort;
+
     @Async("mailExecutor")
     public CompletableFuture<Void> sendEmail(String to, String subject, String body) {
         try {
@@ -35,7 +38,8 @@ public class EmailService {
 
     public void sendEmailSync(String to, String subject, String body) throws Exception {
         // If password is a Brevo API key, bypass SMTP completely and send via HTTPS API (Port 443)
-        if (mailPassword != null && mailPassword.trim().startsWith("xsmtpsib-")) {
+        // BUT if port is 2525, allow standard SMTP because port 2525 is whitelisted and not blocked by Railway!
+        if (mailPassword != null && mailPassword.trim().startsWith("xsmtpsib-") && mailPort != 2525) {
             sendViaBrevoApi(to, subject, body);
             return;
         }
