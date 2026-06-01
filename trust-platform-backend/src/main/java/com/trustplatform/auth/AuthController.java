@@ -29,11 +29,20 @@ public class AuthController {
     private String frontendUrl;
 
     private String getRedirectBaseUrl() {
-        if (frontendUrl == null || frontendUrl.trim().isEmpty() || "*".equals(frontendUrl.trim())) {
-            return "http://localhost:5173";
+        if (frontendUrl != null && !frontendUrl.trim().isEmpty() && !"*".equals(frontendUrl.trim())) {
+            String[] urls = frontendUrl.split(",");
+            return urls[0].trim();
         }
-        String[] urls = frontendUrl.split(",");
-        return urls[0].trim();
+        try {
+            String backendUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder
+                    .fromCurrentContextPath().build().toUriString();
+            if (backendUrl != null && (backendUrl.contains("railway.app") || !backendUrl.contains("localhost"))) {
+                return "https://trust-frontend-delta.vercel.app";
+            }
+        } catch (Exception e) {
+            // Fallback in non-web contexts
+        }
+        return "http://localhost:5173";
     }
 
     @GetMapping("/verify")
