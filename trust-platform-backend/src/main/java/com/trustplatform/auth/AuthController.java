@@ -17,12 +17,36 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailVerificationService emailVerificationService;
 
     @Value("${app.jwt.expiration:900000}")
     private long accessTokenExpirationMs;
 
     @Value("${app.cookie.secure:false}")
     private boolean secureCookie;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
+    private String getRedirectBaseUrl() {
+        if (frontendUrl == null || frontendUrl.trim().isEmpty() || "*".equals(frontendUrl.trim())) {
+            return "http://localhost:5173";
+        }
+        String[] urls = frontendUrl.split(",");
+        return urls[0].trim();
+    }
+
+    @GetMapping("/verify")
+    public void verifyEmail(@RequestParam("token") String token, HttpServletResponse response) throws java.io.IOException {
+        try {
+            emailVerificationService.verifyToken(token);
+            log.info("Email verified successfully for token: {}", token);
+            response.sendRedirect(getRedirectBaseUrl() + "/login?verified=true");
+        } catch (Exception e) {
+            log.error("Email verification failed for token: {}", token, e);
+            response.sendRedirect(getRedirectBaseUrl() + "/login?error=invalid");
+        }
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(

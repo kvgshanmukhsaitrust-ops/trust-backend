@@ -55,10 +55,10 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(userRole)
-                .isActive(true)
+                .isActive(false)
                 .build();
         userRepository.save(user);
-        // emailVerificationService.sendVerificationEmail(user); // Disabled for testing
+        emailVerificationService.sendVerificationEmail(user);
         log.info("New user registered: {}", request.getEmail());
         return AuthenticationResponse.builder()
                 .token(null).refreshToken(null).build();
@@ -74,7 +74,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!user.isActive()) {
-            throw new RuntimeException("Email not verified. Check your inbox.");
+            throw new com.trustplatform.exception.UnauthorizedException("Email not verified. Check your inbox.");
         }
 
         String accessToken = jwtService.generateToken(user);
