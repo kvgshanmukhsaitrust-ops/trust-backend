@@ -58,6 +58,15 @@ public class AuthController {
         }
     }
 
+    @Value("${spring.mail.host:smtp.gmail.com}")
+    private String mailHost;
+
+    @Value("${spring.mail.port:587}")
+    private int mailPort;
+
+    @Value("${spring.mail.username:kvgshanmukhsaitrust@gmail.com}")
+    private String mailUsername;
+
     @GetMapping("/diag-email")
     public ResponseEntity<String> diagEmail(@RequestParam("to") String to) {
         try {
@@ -67,7 +76,13 @@ public class AuthController {
             java.io.StringWriter sw = new java.io.StringWriter();
             java.io.PrintWriter pw = new java.io.PrintWriter(sw);
             e.printStackTrace(pw);
-            return ResponseEntity.status(500).body("Error: " + e.getMessage() + "\n\nStacktrace:\n" + sw.toString());
+            return ResponseEntity.status(500).body("SMTP Diagnostic Audit Fail!\n\n" +
+                "Active Configured Settings:\n" +
+                "• Host: " + mailHost + "\n" +
+                "• Port: " + mailPort + "\n" +
+                "• Username: " + mailUsername + "\n\n" +
+                "Error Exception: " + e.getMessage() + "\n\n" +
+                "Stacktrace:\n" + sw.toString());
         }
     }
 
