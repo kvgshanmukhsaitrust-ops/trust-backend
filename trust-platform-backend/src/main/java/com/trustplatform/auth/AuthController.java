@@ -18,6 +18,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final com.trustplatform.email.EmailService emailService;
 
     @Value("${app.jwt.expiration:900000}")
     private long accessTokenExpirationMs;
@@ -54,6 +55,19 @@ public class AuthController {
         } catch (Exception e) {
             log.error("Email verification failed for token: {}", token, e);
             response.sendRedirect(getRedirectBaseUrl() + "/login?error=invalid");
+        }
+    }
+
+    @GetMapping("/diag-email")
+    public ResponseEntity<String> diagEmail(@RequestParam("to") String to) {
+        try {
+            emailService.sendEmailSync(to, "Production SMTP Diagnostic Test", "<h2>Production SMTP Test</h2><p>If you see this, SMTP is fully working!</p>");
+            return ResponseEntity.ok("Success: SMTP is fully working! Email sent to " + to);
+        } catch (Exception e) {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+            e.printStackTrace(pw);
+            return ResponseEntity.status(500).body("Error: " + e.getMessage() + "\n\nStacktrace:\n" + sw.toString());
         }
     }
 

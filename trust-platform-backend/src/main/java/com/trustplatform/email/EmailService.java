@@ -23,6 +23,15 @@ public class EmailService {
     @Async("mailExecutor")
     public CompletableFuture<Void> sendEmail(String to, String subject, String body) {
         try {
+            sendEmailSync(to, subject, body);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    public void sendEmailSync(String to, String subject, String body) throws Exception {
+        try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
@@ -35,11 +44,10 @@ public class EmailService {
             helper.setText(body, isHtml);
 
             mailSender.send(message);
-            log.info("Email successfully sent to: {}", to);
-            return CompletableFuture.completedFuture(null);
+            log.info("Email successfully sent synchronously to: {}", to);
         } catch (Exception e) {
-            log.error("Failed to send email to: {}", to, e);
-            return CompletableFuture.failedFuture(e);
+            log.error("Failed to send email synchronously to: {}", to, e);
+            throw e;
         }
     }
 }
