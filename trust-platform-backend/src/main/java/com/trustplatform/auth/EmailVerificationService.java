@@ -58,13 +58,14 @@ public class EmailVerificationService {
                 "\n\nThis link expires in 24 hours.";
 
         try {
-            emailService.sendEmail(
+            emailService.sendEmailSync(
                     user.getEmail(),
                     "Verify Your Email - Trust Platform",
                     message
             );
         } catch (Exception e) {
             System.out.println("Email sending failed: " + e.getMessage());
+            throw new RuntimeException("Failed to send verification email to " + user.getEmail(), e);
         }
     }
     @Transactional

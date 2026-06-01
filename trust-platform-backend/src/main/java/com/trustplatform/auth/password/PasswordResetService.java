@@ -75,11 +75,15 @@ public class PasswordResetService {
                         resetLink
                 );
 
-        emailService.sendEmail(
-                user.getEmail(),
-                "Password Reset Request",
-                emailBody
-        );
+        try {
+            emailService.sendEmailSync(
+                    user.getEmail(),
+                    "Password Reset Request",
+                    emailBody
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send password reset email to " + user.getEmail(), e);
+        }
     }
 
     public void resetPassword(ResetPasswordRequest request) {

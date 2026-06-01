@@ -30,8 +30,10 @@ public class EmailService {
     public CompletableFuture<Void> sendEmail(String to, String subject, String body) {
         try {
             sendEmailSync(to, subject, body);
+            log.info("Async email delivered successfully to: {}", to);
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
+            log.error("Async email delivery failed to: {} | subject: '{}' | reason: {}", to, subject, e.getMessage(), e);
             return CompletableFuture.failedFuture(e);
         }
     }
