@@ -108,7 +108,7 @@ public class SecurityConfig {
                 .oauth2Login(oauth -> oauth.defaultSuccessUrl("/api/auth/login/success", true))
 
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
 
                 // =============================================
