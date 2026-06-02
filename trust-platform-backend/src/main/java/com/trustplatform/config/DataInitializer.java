@@ -42,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     private final com.trustplatform.impact.ImpactStatRepository impactStatRepository;
     private final com.trustplatform.member.TrustMemberRepository trustMemberRepository;
     private final com.trustplatform.stories.SuccessStoryRepository successStoryRepository;
+    private final com.trustplatform.impact.ImpactShowcaseCardRepository impactShowcaseCardRepository;
 
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder,
                            EventRepository eventRepository, DonationRepository donationRepository,
@@ -49,7 +50,8 @@ public class DataInitializer implements CommandLineRunner {
                            NotificationRepository notificationRepository,
                            com.trustplatform.impact.ImpactStatRepository impactStatRepository,
                            com.trustplatform.member.TrustMemberRepository trustMemberRepository,
-                           com.trustplatform.stories.SuccessStoryRepository successStoryRepository) {
+                           com.trustplatform.stories.SuccessStoryRepository successStoryRepository,
+                           com.trustplatform.impact.ImpactShowcaseCardRepository impactShowcaseCardRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.eventRepository = eventRepository;
@@ -60,6 +62,7 @@ public class DataInitializer implements CommandLineRunner {
         this.impactStatRepository = impactStatRepository;
         this.trustMemberRepository = trustMemberRepository;
         this.successStoryRepository = successStoryRepository;
+        this.impactShowcaseCardRepository = impactShowcaseCardRepository;
     }
 
     @Override
@@ -381,6 +384,76 @@ public class DataInitializer implements CommandLineRunner {
                     .featured(true)
                     .displayOrder(1)
                     .deleted(false)
+                    .build());
+        }
+
+        // 13. Seed Showcase Cards
+        if (impactShowcaseCardRepository.count() == 0) {
+            logger.info("Seeding community impact showcase cards.");
+            
+            impactShowcaseCardRepository.save(com.trustplatform.impact.ImpactShowcaseCard.builder()
+                    .title("Lighting the Path to Knowledge")
+                    .subtitle("Education Initiative")
+                    .description("Every child deserves a classroom, a mentor, and a future. Our education programs have placed thousands of rural children in structured learning environments — from primary schooling to vocational training.")
+                    .metricCount("12,400+")
+                    .statLabel("Children Educated")
+                    .baseImage("/impact-gallery/gallery_education_base_1779805934541.png")
+                    .revealImage("/impact-gallery/gallery_education_reveal_1779805956148.png")
+                    .tags("Education, Rural Outreach, Youth")
+                    .accentColor("rgba(245, 158, 11, 0.18)")
+                    .displayOrder(1)
+                    .build());
+
+            impactShowcaseCardRepository.save(com.trustplatform.impact.ImpactShowcaseCard.builder()
+                    .title("When Water Flows, Life Follows")
+                    .subtitle("Clean Water Mission")
+                    .description("Clean water transforms entire communities. We have installed hand pumps, purification units, and rainwater harvesting systems across 80+ villages — ending the daily walk for survival.")
+                    .metricCount("80+")
+                    .statLabel("Villages Reached")
+                    .baseImage("/impact-gallery/gallery_water_base_1779805977777.png")
+                    .revealImage("/impact-gallery/gallery_water_reveal_1779805998080.png")
+                    .tags("Water, Sustainability, Infrastructure")
+                    .accentColor("rgba(56, 189, 248, 0.18)")
+                    .displayOrder(2)
+                    .build());
+
+            impactShowcaseCardRepository.save(com.trustplatform.impact.ImpactShowcaseCard.builder()
+                    .title("Healing Where It Matters Most")
+                    .subtitle("Healthcare Access")
+                    .description("Our mobile medical camps and rural clinics have made primary healthcare accessible to the most remote communities — offering free checkups, medicines, and specialist consultations.")
+                    .metricCount("38,000+")
+                    .statLabel("Patients Treated")
+                    .baseImage("/impact-gallery/gallery_health_base_1779806022982.png")
+                    .revealImage("/impact-gallery/gallery_health_reveal_1779806043463.png")
+                    .tags("Healthcare, Medical Camps, Wellness")
+                    .accentColor("rgba(52, 211, 153, 0.18)")
+                    .displayOrder(3)
+                    .build());
+
+            impactShowcaseCardRepository.save(com.trustplatform.impact.ImpactShowcaseCard.builder()
+                    .title("Communities Built on Trust")
+                    .subtitle("Rural Development")
+                    .description("Sustainable change starts at the grassroots. We empower villages through infrastructure development, local governance support, and cultural programs that bring communities together.")
+                    .metricCount("200+")
+                    .statLabel("Communities Impacted")
+                    .baseImage("/impact-gallery/gallery_community_base_1779806066469.png")
+                    .revealImage("/impact-gallery/gallery_community_reveal_1779806091741.png")
+                    .tags("Community, Development, Culture")
+                    .accentColor("rgba(176, 122, 63, 0.18)")
+                    .displayOrder(4)
+                    .build());
+
+            impactShowcaseCardRepository.save(com.trustplatform.impact.ImpactShowcaseCard.builder()
+                    .title("Empowering Women, Uplifting Families")
+                    .subtitle("Women's Empowerment")
+                    .description("When women thrive, families flourish. Our self-help group network provides skills training, micro-financing, and mentorship — transforming vulnerable women into confident community leaders.")
+                    .metricCount("5,200+")
+                    .statLabel("Women Empowered")
+                    .baseImage("/impact-gallery/gallery_women_base_1779806111914.png")
+                    .revealImage("/impact-gallery/gallery_women_reveal_1779806136343.png")
+                    .tags("Women, Empowerment, Livelihood")
+                    .accentColor("rgba(232, 121, 249, 0.18)")
+                    .displayOrder(5)
                     .build());
         }
 

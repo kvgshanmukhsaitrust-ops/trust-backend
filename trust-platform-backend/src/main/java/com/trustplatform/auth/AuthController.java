@@ -19,6 +19,8 @@ public class AuthController {
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
     private final com.trustplatform.email.EmailService emailService;
+    private final com.trustplatform.security.JwtService jwtService;
+    private final com.trustplatform.auth.RefreshTokenService refreshTokenService;
 
     @Value("${app.jwt.expiration:900000}")
     private long accessTokenExpirationMs;
@@ -55,6 +57,56 @@ public class AuthController {
         } catch (Exception e) {
             log.error("Email verification failed for token: {}", token, e);
             response.sendRedirect(getRedirectBaseUrl() + "/login?error=invalid");
+        }
+    }
+
+    @GetMapping("/login/success")
+    public void oauthSuccess(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal org.springframework.security.oauth2.core.user.OAuth2User oauth2User,
+            HttpServletResponse response) throws java.io.IOException {
+        if (oauth2User == null) {
+            response.sendRedirect(getRedirectBaseUrl() + "/login?error=oauth_failed");
+            return;
+        }
+
+        String email = oauth2User.getAttribute("email");
+        String name = oauth2User.getAttribute("name");
+        String picture = oauth2User.getAttribute("picture");
+
+        if (email == null || email.trim().isEmpty()) {
+            response.sendRedirect(getRedirectBaseUrl() + "/login?error=oauth_failed");
+            return;
+        }
+
+        try {
+            com.trustplatform.user.User user = authService.oauthProvision(email, name);
+
+            // Generate JWT and refresh tokens
+            String accessToken = jwtService.generateToken(user);
+            com.trustplatform.auth.RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+            // Fallback avatar handling
+            String avatarUrl = picture;
+            if (avatarUrl == null || avatarUrl.trim().isEmpty()) {
+                avatarUrl = "https://ui-avatars.com/api/?name=" + java.net.URLEncoder.encode(user.getFullName(), java.nio.charset.StandardCharsets.UTF_8) + "&background=B07A3F&color=fff";
+            }
+
+            // Set cookie for automatic session validation
+            setCookie(response, accessToken);
+
+            // Redirect with credentials and avatar URL
+            String redirectUrl = getRedirectBaseUrl() + "/login" +
+                    "?token=" + accessToken +
+                    "&refreshToken=" + refreshToken.getToken() +
+                    "&name=" + java.net.URLEncoder.encode(user.getFullName(), java.nio.charset.StandardCharsets.UTF_8) +
+                    "&email=" + user.getEmail() +
+                    "&role=" + user.getRole().name() +
+                    "&avatar=" + java.net.URLEncoder.encode(avatarUrl, java.nio.charset.StandardCharsets.UTF_8);
+
+            response.sendRedirect(redirectUrl);
+        } catch (Exception e) {
+            log.error("Error during Google OAuth authentication redirect processing", e);
+            response.sendRedirect(getRedirectBaseUrl() + "/login?error=oauth_failed");
         }
     }
 

@@ -105,6 +105,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
 
+                .oauth2Login(oauth -> oauth.defaultSuccessUrl("/api/auth/login/success", true))
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

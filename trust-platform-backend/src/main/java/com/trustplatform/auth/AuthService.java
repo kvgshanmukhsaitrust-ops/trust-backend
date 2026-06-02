@@ -38,12 +38,10 @@ public class AuthService {
             try {
                 Role parsedRole = Role.valueOf(request.getRole().toUpperCase());
                 if (parsedRole == Role.ADMIN) {
-                    if (userRepository.existsByRole(Role.ADMIN)) {
-                        throw new com.trustplatform.exception.BadRequestException("An administrator account already exists. Registration of additional administrators is disabled.");
-                    }
+                    throw new org.springframework.security.access.AccessDeniedException("Registration of administrator accounts is strictly forbidden.");
                 }
                 userRole = parsedRole;
-            } catch (com.trustplatform.exception.BadRequestException e) {
+            } catch (org.springframework.security.access.AccessDeniedException e) {
                 throw e;
             } catch (Exception e) {
                 userRole = Role.USER;
@@ -55,13 +53,32 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(userRole)
-                .isActive(false)
+                .isActive(false) // local registration requires email verification
+                .authProvider(com.trustplatform.user.AuthProvider.LOCAL)
                 .build();
         userRepository.save(user);
         emailVerificationService.sendVerificationEmail(user);
         log.info("New user registered: {}", request.getEmail());
         return AuthenticationResponse.builder()
                 .token(null).refreshToken(null).build();
+    }
+
+    @Transactional
+    public User oauthProvision(String email, String name) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User user = User.builder()
+                            .email(email)
+                            .fullName(name != null ? name : email)
+                            .password(passwordEncoder.encode(java.util.UUID.randomUUID().toString())) // Secure BCrypt random password
+                            .role(Role.USER)
+                            .isActive(true) // OAuth users are pre-verified
+                            .authProvider(com.trustplatform.user.AuthProvider.GOOGLE)
+                            .build();
+                    User saved = userRepository.save(user);
+                    log.info("New OAuth user provisioned: {}", email);
+                    return saved;
+                });
     }
 
     @Transactional

@@ -45,6 +45,11 @@ public class User extends BaseAuditableEntity implements UserDetails {
     @Column(nullable = false)
     private boolean isActive = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
     // ===============================
     // Spring Security Methods
     // ===============================

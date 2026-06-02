@@ -30,6 +30,7 @@ public class DonationService {
     private final EventRepository eventRepository;
     private final NotificationService notificationService;
     private final AuditService auditService;
+    private final com.trustplatform.user.UserRepository userRepository;
 
     // =========================================
     // CREATE DONATION (anonymous)
@@ -213,5 +214,55 @@ public class DonationService {
                 .eventTitle(donation.getEvent() != null ? donation.getEvent().getTitle() : null)
                 .correlationId(donation.getCorrelationId())
                 .build();
+    }
+
+    @Transactional
+    public synchronized void processVerifiedDonation(String payerEmail, java.math.BigDecimal amount, String transactionId, String gatewayOrderId, String metadata) {
+        log.info("[DonationService] Processing verified donation from {}: amount={}, gatewayOrderId={}", payerEmail, amount, gatewayOrderId);
+        
+        Donation donation = null;
+        if (gatewayOrderId != null) {
+            donation = donationRepository.findByGatewayOrderId(gatewayOrderId).orElse(null);
+        }
+
+        if (donation == null) {
+            donation = new Donation();
+            donation.setAmount(amount);
+            donation.setDonorName("Donor (" + payerEmail + ")");
+            donation.setDonorEmail(payerEmail);
+            donation.setStatus(DonationStatus.SUCCESS);
+            donation.setTransactionId(transactionId);
+            donation.setGatewayOrderId(gatewayOrderId);
+            donation.setReceiptUuid(java.util.UUID.randomUUID().toString());
+            donation.setReceiptNumber("REC-" + System.currentTimeMillis());
+            donation.setCorrelationId("TX-WEBHOOK-" + java.util.UUID.randomUUID().toString());
+            donation.setPaymentMethod("Razorpay Webhook");
+
+            java.util.Optional<com.trustplatform.user.User> userOpt = userRepository.findByEmail(payerEmail);
+            if (userOpt.isPresent()) {
+                donation.setUser(userOpt.get());
+                donation.setDonorName(userOpt.get().getFullName());
+            }
+        } else {
+            if (donation.getStatus() != DonationStatus.SUCCESS) {
+                donation.setStatus(DonationStatus.SUCCESS);
+                donation.setTransactionId(transactionId);
+                donation.setReceiptNumber("REC-" + System.currentTimeMillis());
+                donation.setPaymentMethod("Razorpay Webhook");
+            }
+        }
+
+        donationRepository.save(donation);
+
+        // Automated donor role progression upgrade logic
+        userRepository.findByEmail(payerEmail).ifPresent(user -> {
+            if (user.getRole() == com.trustplatform.user.Role.USER) {
+                user.setRole(com.trustplatform.user.Role.DONOR);
+                userRepository.save(user);
+                log.info("[DonationService] User {} successfully upgraded to DONOR", payerEmail);
+            }
+        });
+
+        triggerSuccessNotifications(donation);
     }
 }
