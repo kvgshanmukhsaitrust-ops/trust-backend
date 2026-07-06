@@ -59,6 +59,7 @@ public class SuccessStoryService {
         // Associate milestones if present
         if (request.getTimeline() != null && !request.getTimeline().isEmpty()) {
             for (StoryTimelineMilestone milestone : request.getTimeline()) {
+                milestone.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(milestone.getDescription()));
                 milestone.setStory(savedStory);
                 savedStory.getTimeline().add(milestone);
             }
@@ -110,6 +111,7 @@ public class SuccessStoryService {
         story.getTimeline().clear();
         if (updated.getTimeline() != null) {
             for (StoryTimelineMilestone milestone : updated.getTimeline()) {
+                milestone.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(milestone.getDescription()));
                 milestone.setStory(story);
                 story.getTimeline().add(milestone);
             }
@@ -144,7 +146,7 @@ public class SuccessStoryService {
             // Convert back to SuccessStory entity representation
             SuccessStory rollbackEntity = new SuccessStory();
             rollbackEntity.setTitle(snapshot.getTitle());
-            rollbackEntity.setDescription(snapshot.getDescription());
+            rollbackEntity.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(snapshot.getDescription()));
             rollbackEntity.setImageUrl(snapshot.getImageUrl());
             rollbackEntity.setCategory(snapshot.getCategory());
             rollbackEntity.setPublished(snapshot.isPublished());
@@ -163,7 +165,7 @@ public class SuccessStoryService {
                     StoryTimelineMilestone sm = new StoryTimelineMilestone();
                     sm.setDate(m.getDate());
                     sm.setTitle(m.getTitle());
-                    sm.setDescription(m.getDescription());
+                    sm.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(m.getDescription()));
                     sm.setImageUrl(m.getImageUrl());
                     sm.setOrderIndex(m.getOrderIndex());
                     return sm;
@@ -238,7 +240,7 @@ public class SuccessStoryService {
 
     private void copyStoryFields(SuccessStory src, SuccessStory dest) {
         if (src.getTitle() != null) dest.setTitle(src.getTitle());
-        if (src.getDescription() != null) dest.setDescription(src.getDescription());
+        if (src.getDescription() != null) dest.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(src.getDescription()));
         if (src.getImageUrl() != null) dest.setImageUrl(src.getImageUrl());
         if (src.getCategory() != null) dest.setCategory(src.getCategory());
         dest.setPublished(src.isPublished());

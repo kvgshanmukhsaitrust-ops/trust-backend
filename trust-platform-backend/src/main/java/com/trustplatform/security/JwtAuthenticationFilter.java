@@ -66,15 +66,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractToken(HttpServletRequest request) {
+        String headerToken = extractFromHeader(request);
+        if (headerToken != null) {
+            return headerToken;
+        }
+        
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             return Arrays.stream(cookies)
                     .filter(c -> COOKIE_NAME.equals(c.getName()))
                     .map(Cookie::getValue)
                     .findFirst()
-                    .orElse(extractFromHeader(request));
+                    .orElse(null);
         }
-        return extractFromHeader(request);
+        return null;
     }
 
     private String extractFromHeader(HttpServletRequest request) {

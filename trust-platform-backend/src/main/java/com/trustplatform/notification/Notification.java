@@ -34,4 +34,29 @@ public class Notification {
 
     @Column(length = 100)
     private String correlationId;
+
+    @Column(name = "recipient_user_id")
+    private Long recipientUserId;
+
+    @Column(name = "recipient_role", length = 50)
+    private String recipientRole;
+
+    @Column(name = "notification_type", length = 100)
+    private String notificationType;
+
+    @Column(name = "target_entity", length = 100)
+    private String targetEntity;
+
+    @Column(name = "target_entity_id")
+    private Long targetEntityId;
+
+    @Column(name = "created_by", length = 255)
+    private String createdBy;
+
+    @Column(name = "read_at")
+    private LocalDateTime readAt;
+
+    @Column(name = "priority", length = 20)
+    @Builder.Default
+    private String priority = "MEDIUM";
 }

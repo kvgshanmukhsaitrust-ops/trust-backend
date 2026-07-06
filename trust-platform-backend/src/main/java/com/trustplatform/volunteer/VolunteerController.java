@@ -88,4 +88,98 @@ public class VolunteerController {
                         .build()
         );
     }
+
+    @PostMapping("/{id}/check-in")
+    @PreAuthorize("hasAuthority('READ_CONTENT')")
+    @AuditAction("VOLUNTEER_CHECK_IN")
+    public ResponseEntity<ApiSuccessResponse<VolunteerResponse>> checkIn(@PathVariable Long id) {
+        VolunteerResponse response = volunteerService.checkIn(id);
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<VolunteerResponse>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Checked in successfully")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PostMapping("/{id}/check-out")
+    @PreAuthorize("hasAuthority('READ_CONTENT')")
+    @AuditAction("VOLUNTEER_CHECK_OUT")
+    public ResponseEntity<ApiSuccessResponse<VolunteerResponse>> checkOut(@PathVariable Long id) {
+        VolunteerResponse response = volunteerService.checkOut(id);
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<VolunteerResponse>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Checked out successfully")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PutMapping("/{id}/role")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("ASSIGN_VOLUNTEER_ROLE")
+    public ResponseEntity<ApiSuccessResponse<VolunteerResponse>> assignRole(
+            @PathVariable Long id,
+            @RequestParam String role) {
+        VolunteerResponse response = volunteerService.assignRole(id, role);
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<VolunteerResponse>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Role assigned successfully")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @PutMapping("/{id}/attendance")
+    @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
+    @AuditAction("VERIFY_VOLUNTEER_ATTENDANCE")
+    public ResponseEntity<ApiSuccessResponse<VolunteerResponse>> verifyAttendance(
+            @PathVariable Long id,
+            @RequestParam(required = false) Double hours,
+            @RequestParam Boolean verified) {
+        VolunteerResponse response = volunteerService.verifyAttendance(id, hours, verified);
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<VolunteerResponse>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Attendance verified successfully")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasAuthority('READ_CONTENT')")
+    public ResponseEntity<ApiSuccessResponse<com.trustplatform.volunteer.dto.VolunteerStatsResponse>> getStats(
+            org.springframework.security.core.Authentication authentication) {
+        com.trustplatform.user.User user = (com.trustplatform.user.User) authentication.getPrincipal();
+        com.trustplatform.volunteer.dto.VolunteerStatsResponse response = volunteerService.getVolunteerStats(user.getId());
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<com.trustplatform.volunteer.dto.VolunteerStatsResponse>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Stats fetched successfully")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/leaderboard")
+    public ResponseEntity<ApiSuccessResponse<List<com.trustplatform.volunteer.dto.VolunteerLeaderboardEntry>>> getLeaderboard() {
+        List<com.trustplatform.volunteer.dto.VolunteerLeaderboardEntry> response = volunteerService.getLeaderboard();
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<List<com.trustplatform.volunteer.dto.VolunteerLeaderboardEntry>>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("Leaderboard fetched successfully")
+                        .data(response)
+                        .build()
+        );
+    }
 }

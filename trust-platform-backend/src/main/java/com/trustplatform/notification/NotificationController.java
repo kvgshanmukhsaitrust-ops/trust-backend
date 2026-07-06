@@ -22,10 +22,14 @@ public class NotificationController {
     @PreAuthorize("hasAuthority('READ_CONTENT')")
     public ResponseEntity<ApiSuccessResponse<Page<Notification>>> getNotifications(
             @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Boolean isRead,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size) {
         
-        Page<Notification> alerts = notificationService.getNotifications(userDetails.getUsername(), page, size);
+        Page<Notification> alerts = notificationService.getNotifications(
+                userDetails.getUsername(), category, isRead, search, page, size);
         return ResponseEntity.ok(
                 ApiSuccessResponse.<Page<Notification>>builder()
                         .timestamp(LocalDateTime.now())

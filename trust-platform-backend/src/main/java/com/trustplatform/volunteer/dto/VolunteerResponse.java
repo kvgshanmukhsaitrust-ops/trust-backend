@@ -18,5 +18,9 @@ public class VolunteerResponse {
     private String userFullName;   // Added to support the Builder
     private VolunteerStatus status;
     private String message;
-    
+    private String assignedRole;
+    private java.time.LocalDateTime checkInTime;
+    private java.time.LocalDateTime checkOutTime;
+    private Double hoursServed;
+    private Boolean attendanceVerified;
 }

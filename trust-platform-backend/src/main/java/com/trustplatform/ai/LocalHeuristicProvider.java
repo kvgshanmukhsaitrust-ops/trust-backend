@@ -198,4 +198,13 @@ public class LocalHeuristicProvider implements AiProvider {
         }
         return defaultValue;
     }
+
+    @Override
+    public String summarizeCase(String title, String description, String category) {
+        log.info("[LocalHeuristicProvider] Formulating heuristic case summary...");
+        return "### 📋 Heuristic Applicant Case Summary\n" +
+                "* **Assistance Requested**: " + category + " support for \"" + title + "\".\n" +
+                "* **Description Overview**: " + (description != null && description.length() > 100 ? description.substring(0, 97) + "..." : description) + "\n" +
+                "* **Vetting Score Guidance**: Priority recommendation MEDIUM. Application is complete with valid category mapping.";
+    }
 }

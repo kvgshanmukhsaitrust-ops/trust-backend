@@ -30,7 +30,7 @@ public class UserController {
 
     // 2. Personal Activity Log (Donations + Events)
     @GetMapping("/me/activity")
-    @PreAuthorize("hasAnyRole('USER', 'VOLUNTEER')")
+    @PreAuthorize("hasAnyRole('USER', 'VOLUNTEER', 'APPLICANT')")
     public ResponseEntity<Map<String, Object>> getMyActivity(@AuthenticationPrincipal UserDetails userDetails) {
         String email = userDetails.getUsername();
         User user = userRepository.findByEmail(email)
@@ -43,5 +43,20 @@ public class UserController {
         activityLog.put("eventApplications", volunteerRepository.findByUserId(user.getId()));
 
         return ResponseEntity.ok(activityLog);
+    }
+
+    @PutMapping("/me/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<User> updateProfile(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String name = body.get("name");
+        if (name != null && !name.trim().isEmpty()) {
+            user.setFullName(name);
+        }
+        User saved = userRepository.save(user);
+        return ResponseEntity.ok(saved);
     }
 }

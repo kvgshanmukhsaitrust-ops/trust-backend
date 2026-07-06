@@ -1,0 +1,2 @@
+-- Initial baseline schema placeholder
+-- Spring Boot will baseline the existing database schema as Version 1.

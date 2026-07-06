@@ -134,7 +134,7 @@ public class EventService {
 
     private void applyRequest(Event event, CreateEventRequest request) {
         if (request.getTitle() != null) event.setTitle(request.getTitle());
-        if (request.getDescription() != null) event.setDescription(request.getDescription());
+        if (request.getDescription() != null) event.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(request.getDescription()));
         if (request.getLocation() != null) event.setLocation(request.getLocation());
         if (request.getCategory() != null) event.setCategory(request.getCategory());
         if (request.getBannerUrl() != null) event.setBannerUrl(request.getBannerUrl());
@@ -162,7 +162,7 @@ public class EventService {
                 EventFaq faq = EventFaq.builder()
                         .event(event)
                         .question(faqReq.getQuestion())
-                        .answer(faqReq.getAnswer())
+                        .answer(com.trustplatform.common.HtmlSanitizer.sanitize(faqReq.getAnswer()))
                         .displayOrder(faqReq.getDisplayOrder())
                         .build();
                 event.getFaqs().add(faq);

@@ -163,4 +163,18 @@ public class GeminiProvider implements AiProvider {
         }
         return defaultValue;
     }
+
+    @Override
+    public String summarizeCase(String title, String description, String category) {
+        log.info("[GeminiProvider] Executing live case summarization via Gemini...");
+        String prompt = String.format(
+                "You are an expert NGO Case Investigator. Summarize this assistance application to help the review committee.\n" +
+                "Case Title: %s\n" +
+                "Category: %s\n" +
+                "Details: %s\n" +
+                "Provide a professional bulleted markdown summary containing the core request, urgency level (low/medium/high/critical), and key items to verify.",
+                title, category, description
+        );
+        return callGemini(prompt);
+    }
 }

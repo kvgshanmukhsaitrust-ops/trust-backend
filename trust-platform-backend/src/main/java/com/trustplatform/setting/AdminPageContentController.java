@@ -50,7 +50,7 @@ public class AdminPageContentController {
         if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length() >= 2) {
             cleaned = cleaned.substring(1, cleaned.length() - 1);
         }
-        final String finalValue = cleaned;
+        final String finalValue = com.trustplatform.common.HtmlSanitizer.sanitize(cleaned);
         
         PageContent content = pageContentRepository.findByContentKey(key)
                 .orElseGet(() -> {

@@ -30,7 +30,7 @@ public class ImageUploadController {
     );
 
     @PostMapping("/upload")
-    @PreAuthorize("hasAuthority('MANAGE_MEDIA')")
+    @PreAuthorize("hasAuthority('READ_CONTENT')")
     @AuditAction("UPLOAD_MEDIA")
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadMedia(
             @RequestParam("file") MultipartFile file,

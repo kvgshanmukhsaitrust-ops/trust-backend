@@ -1,5 +1,8 @@
 package com.trustplatform.notification;
 
+import com.trustplatform.user.Role;
+import com.trustplatform.user.User;
+import com.trustplatform.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,10 +24,15 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserRepository userRepository;
 
-    /**
-     * Dispatch and persist notification to a specific user email asynchronously
-     */
+    // ── Internal role check ───────────────────────────────────────────────────
+    private boolean isAdmin(String email) {
+        return userRepository.findByEmail(email)
+                .map(user -> user.getRole() == Role.ADMIN)
+                .orElse(false);
+    }
+
     @Async
     @Transactional
     public void sendToUser(String email, String title, String message, String category) {
@@ -36,8 +44,14 @@ public class NotificationService {
     public void sendToUser(String email, String title, String message, String category, String correlationId) {
         log.info("Dispatching async private notification to {}: [{}] {} (correlationId={})", email, category, title, correlationId);
         try {
+            User user = userRepository.findByEmail(email).orElse(null);
+            String roleStr = user != null ? "ROLE_" + user.getRole().name() : null;
+            Long userId = user != null ? user.getId() : null;
+
             Notification alert = Notification.builder()
                     .recipientEmail(email)
+                    .recipientUserId(userId)
+                    .recipientRole(roleStr)
                     .title(title)
                     .message(message)
                     .category(category)
@@ -54,9 +68,6 @@ public class NotificationService {
         }
     }
 
-    /**
-     * Dispatch and persist general admin alert notification asynchronously
-     */
     @Async
     @Transactional
     public void sendToAdmins(String title, String message, String category) {
@@ -70,6 +81,7 @@ public class NotificationService {
         try {
             Notification alert = Notification.builder()
                     .recipientEmail("ROLE_ADMIN")
+                    .recipientRole("ROLE_ADMIN")
                     .title(title)
                     .message(message)
                     .category(category)
@@ -86,42 +98,84 @@ public class NotificationService {
         }
     }
 
+    @Async
+    @Transactional
+    public void sendNotification(Notification alert) {
+        try {
+            if (alert.getCreatedAt() == null) {
+                alert.setCreatedAt(LocalDateTime.now());
+            }
+            if (alert.getRecipientEmail() != null && !"ROLE_ADMIN".equals(alert.getRecipientEmail())) {
+                userRepository.findByEmail(alert.getRecipientEmail()).ifPresent(u -> {
+                    alert.setRecipientUserId(u.getId());
+                    if (alert.getRecipientRole() == null) {
+                        alert.setRecipientRole("ROLE_" + u.getRole().name());
+                    }
+                });
+            }
+            
+            notificationRepository.save(alert);
+            
+            if ("ROLE_ADMIN".equals(alert.getRecipientEmail()) || "ROLE_ADMIN".equals(alert.getRecipientRole())) {
+                messagingTemplate.convertAndSend("/topic/admin-notifications", alert);
+            } else if (alert.getRecipientEmail() != null) {
+                messagingTemplate.convertAndSendToUser(alert.getRecipientEmail(), "/queue/notifications", alert);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send custom notification", e);
+        }
+    }
+
     @Transactional
     public void markAsRead(Long notificationId) {
         notificationRepository.findById(notificationId).ifPresent(alert -> {
             alert.setRead(true);
+            alert.setReadAt(LocalDateTime.now());
             notificationRepository.save(alert);
         });
     }
 
     @Transactional
     public void markAllAsRead(String email) {
-        List<Notification> unread = notificationRepository.findByRecipientEmailAndIsReadFalse(email);
-        unread.forEach(alert -> alert.setRead(true));
+        boolean adminCheck = isAdmin(email);
+        String targetEmail = adminCheck ? "ROLE_ADMIN" : email;
+        String targetRole = adminCheck ? "ROLE_ADMIN" : userRepository.findByEmail(email)
+                .map(u -> "ROLE_" + u.getRole().name())
+                .orElse("ROLE_USER");
+
+        List<Notification> unread = notificationRepository.findUnreadNotifications(targetEmail, targetRole);
+        unread.forEach(alert -> {
+            alert.setRead(true);
+            alert.setReadAt(LocalDateTime.now());
+        });
         notificationRepository.saveAll(unread);
-        
-        // Also mark ROLE_ADMIN notifications if admin reads
-        if (email.contains("admin") || email.equals("admin@trust.org")) {
-            List<Notification> adminUnread = notificationRepository.findByRecipientEmailAndIsReadFalse("ROLE_ADMIN");
-            adminUnread.forEach(alert -> alert.setRead(true));
-            notificationRepository.saveAll(adminUnread);
-        }
     }
 
     @Transactional(readOnly = true)
-    public Page<Notification> getNotifications(String email, int page, int size) {
+    public Page<Notification> getNotifications(String email, String category, Boolean isRead, String search, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        if (email.contains("admin") || email.equals("admin@trust.org")) {
-            return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc("ROLE_ADMIN", pageable);
-        }
-        return notificationRepository.findByRecipientEmailOrderByCreatedAtDesc(email, pageable);
+        
+        boolean adminCheck = isAdmin(email);
+        String targetEmail = adminCheck ? "ROLE_ADMIN" : email;
+        
+        String targetRole = adminCheck ? "ROLE_ADMIN" : userRepository.findByEmail(email)
+                .map(u -> "ROLE_" + u.getRole().name())
+                .orElse("ROLE_USER");
+        
+        String cleanCategory = (category != null && !category.trim().isEmpty()) ? category : null;
+        String cleanSearch = (search != null && !search.trim().isEmpty()) ? search : null;
+
+        return notificationRepository.searchNotifications(targetEmail, targetRole, cleanCategory, isRead, cleanSearch, pageable);
     }
 
     @Transactional(readOnly = true)
     public long getUnreadCount(String email) {
-        if (email.contains("admin") || email.equals("admin@trust.org")) {
-            return notificationRepository.countByRecipientEmailAndIsReadFalse("ROLE_ADMIN");
-        }
-        return notificationRepository.countByRecipientEmailAndIsReadFalse(email);
+        boolean adminCheck = isAdmin(email);
+        String targetEmail = adminCheck ? "ROLE_ADMIN" : email;
+        String targetRole = adminCheck ? "ROLE_ADMIN" : userRepository.findByEmail(email)
+                .map(u -> "ROLE_" + u.getRole().name())
+                .orElse("ROLE_USER");
+
+        return notificationRepository.countUnreadNotifications(targetEmail, targetRole);
     }
 }

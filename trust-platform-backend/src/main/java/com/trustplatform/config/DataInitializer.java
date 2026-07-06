@@ -165,6 +165,30 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("Normal user already exists. Force updated credentials.");
         }
 
+        // 4.5. Seed Mock Applicant User
+        String applicantEmail = "applicant@trust.org";
+        User applicantUser = null;
+        if (!userRepository.existsByEmail(applicantEmail)) {
+            logger.info("Seeding Applicant user account.");
+            applicantUser = User.builder()
+                    .fullName("Ramesh Kumar")
+                    .email(applicantEmail)
+                    .password(passwordEncoder.encode("applicant123"))
+                    .role(Role.APPLICANT)
+                    .isActive(true)
+                    .build();
+            applicantUser = userRepository.save(applicantUser);
+        } else {
+            applicantUser = userRepository.findByEmail(applicantEmail).orElse(null);
+            if (applicantUser != null) {
+                applicantUser.setPassword(passwordEncoder.encode("applicant123"));
+                applicantUser.setRole(Role.APPLICANT);
+                applicantUser.setActive(true);
+                applicantUser = userRepository.save(applicantUser);
+            }
+            logger.info("Applicant user already exists. Force updated credentials.");
+        }
+
         // 5. Seed Core Operational Events
         Event event1 = null;
         Event event2 = null;

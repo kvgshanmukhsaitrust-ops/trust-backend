@@ -29,7 +29,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:*}")
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:https://trust-frontend-delta.vercel.app}")
     private String frontendUrl;
 
     @Bean
@@ -41,24 +41,26 @@ public class SecurityConfig {
                 // =============================================
                 // SECURITY HEADERS
                 // =============================================
-                .headers(headers -> headers
-                        .contentTypeOptions(Customizer.withDefaults())
-                        .frameOptions(frame -> frame.deny())
-                        .contentSecurityPolicy(csp -> csp
-                                .policyDirectives(
-                                        "default-src 'self'; " +
-                                        "script-src 'self'; " +
-                                        "frame-ancestors 'none'"
-                                )
-                        )
-                )
+                .headers(headers -> {
+                    headers.contentTypeOptions(Customizer.withDefaults());
+                    headers.frameOptions(frame -> frame.deny());
+                    headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
+                    headers.permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=()"));
+                    headers.contentSecurityPolicy(csp -> csp
+                            .policyDirectives(
+                                    "default-src 'self'; " +
+                                    "script-src 'self'; " +
+                                    "frame-ancestors 'none'"
+                            )
+                    );
+                })
 
                 // =============================================
                 // AUTHORIZATION RULES
                 // =============================================
                 .authorizeHttpRequests(auth -> auth
                         // Auth endpoints — always public
-                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**", "/ws/**", "/actuator/health").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**", "/ws/**", "/actuator/health", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/donations").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/create-order/**", "/api/payments/verify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/donations/*/receipt").permitAll()

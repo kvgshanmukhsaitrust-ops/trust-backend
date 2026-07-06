@@ -177,6 +177,7 @@ public class GlobalExceptionHandler {
 
         String details = "Access denied for URI: " + request.getRequestURI() + 
                          " [" + request.getMethod() + "]. User lacks required authority.";
+        log.warn("SECURITY WARNING: {} | Exception: {}", details, ex.getMessage());
         logFailedAudit("SECURITY_VIOLATION", "Security", details, ex.getMessage(), request);
 
         ApiResponse<Object> response = ApiResponse.error(

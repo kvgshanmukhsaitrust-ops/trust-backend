@@ -39,4 +39,21 @@ public class VolunteerApplication extends BaseAuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
+
+    @Column(name = "assigned_role", length = 255)
+    private String assignedRole;
+
+    @Column(name = "check_in_time")
+    private java.time.LocalDateTime checkInTime;
+
+    @Column(name = "check_out_time")
+    private java.time.LocalDateTime checkOutTime;
+
+    @Column(name = "hours_served")
+    @Builder.Default
+    private Double hoursServed = 0.0;
+
+    @Column(name = "attendance_verified", nullable = false)
+    @Builder.Default
+    private Boolean attendanceVerified = false;
 }

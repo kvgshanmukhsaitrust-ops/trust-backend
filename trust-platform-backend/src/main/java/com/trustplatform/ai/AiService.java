@@ -87,4 +87,13 @@ public class AiService {
             return localHeuristicProvider.matchVolunteer(volunteer, event);
         }
     }
+
+    public String summarizeCase(String title, String description, String category) {
+        try {
+            return resolveProvider().summarizeCase(title, description, category);
+        } catch (Exception e) {
+            log.error("[AiService] Live AI case summarization failed. Gracefully falling back to heuristics...", e);
+            return localHeuristicProvider.summarizeCase(title, description, category);
+        }
+    }
 }

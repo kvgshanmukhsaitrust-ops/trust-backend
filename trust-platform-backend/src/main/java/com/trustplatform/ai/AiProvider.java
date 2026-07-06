@@ -25,4 +25,9 @@ public interface AiProvider {
      * Computes volunteer matching rationales and compatibility scores.
      */
     String matchVolunteer(Map<String, Object> volunteerProfile, Map<String, Object> eventParameters);
+
+    /**
+     * Generates an AI summary for a case application.
+     */
+    String summarizeCase(String title, String description, String category);
 }

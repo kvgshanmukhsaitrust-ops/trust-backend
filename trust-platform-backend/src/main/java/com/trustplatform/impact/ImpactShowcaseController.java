@@ -23,6 +23,7 @@ public class ImpactShowcaseController {
     @PreAuthorize("hasRole('ADMIN')")
     @AuditAction("CREATE_SHOWCASE_CARD")
     public ResponseEntity<ImpactShowcaseCard> create(@RequestBody ImpactShowcaseCard card) {
+        card.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(card.getDescription()));
         return ResponseEntity.ok(repository.save(card));
     }
 
@@ -33,7 +34,7 @@ public class ImpactShowcaseController {
         ImpactShowcaseCard card = repository.findById(id)
                 .orElseThrow(() -> new com.trustplatform.exception.ResourceNotFoundException("ImpactShowcaseCard not found with id: " + id));
         card.setTitle(cardDetails.getTitle());
-        card.setDescription(cardDetails.getDescription());
+        card.setDescription(com.trustplatform.common.HtmlSanitizer.sanitize(cardDetails.getDescription()));
         card.setIcon(cardDetails.getIcon());
         card.setMetricCount(cardDetails.getMetricCount());
         card.setDisplayOrder(cardDetails.getDisplayOrder());
