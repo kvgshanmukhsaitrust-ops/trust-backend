@@ -126,7 +126,7 @@ public class GlobalExceptionHandler {
             org.springframework.web.servlet.resource.NoResourceFoundException ex,
             HttpServletRequest request) {
 
-        return buildResponse("Static resource not found: " + ex.getResourcePath(), HttpStatus.NOT_FOUND);
+        return buildResponse("Static resource not found", HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
@@ -151,6 +151,22 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         return buildResponse(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request) {
+
+        return buildResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
     // ==============================
@@ -246,15 +262,10 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request) {
 
-        log.error("Unhandled exception occurred", ex);
-
-        String errMsg = "An unexpected error occurred";
-        if (ex.getMessage() != null && !ex.getMessage().isBlank()) {
-            errMsg = ex.getClass().getSimpleName() + ": " + ex.getMessage();
-        }
+        log.error("Unhandled exception occurred at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
 
         ApiResponse<Object> response = ApiResponse.error(
-                errMsg,
+                "An internal server error occurred. Please try again later.",
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );
 

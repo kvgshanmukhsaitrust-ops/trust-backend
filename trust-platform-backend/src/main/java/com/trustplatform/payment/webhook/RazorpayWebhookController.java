@@ -34,9 +34,11 @@ public class RazorpayWebhookController {
         }
 
         try {
-            // HMAC SHA-256 signature validation
+            // HMAC SHA-256 signature validation using constant-time comparison
             String generatedSignature = hmacSha256Hex(payload, webhookSecret);
-            if (!generatedSignature.equals(signature)) {
+            if (!java.security.MessageDigest.isEqual(
+                    generatedSignature.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    signature.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
                 log.error("[RazorpayWebhookController] Webhook signature validation mismatch!");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
             }

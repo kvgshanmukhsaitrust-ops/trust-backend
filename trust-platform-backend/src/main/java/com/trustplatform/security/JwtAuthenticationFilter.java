@@ -32,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        if ("websocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
+        if ("websocket".equalsIgnoreCase(request.getHeader("Upgrade")) && request.getRequestURI().startsWith("/ws")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -55,14 +55,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(
                                     userDetails, null,
                                     userDetails.getAuthorities());
+                    authToken.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    sendErrorResponse(response, "Invalid token");
+                    return;
                 }
+            } else {
+                sendErrorResponse(response, "Invalid token claims");
+                return;
             }
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            log.debug("JWT token expired: {}", e.getMessage());
+            sendErrorResponse(response, "JWT token has expired");
+            return;
+        } catch (io.jsonwebtoken.security.SignatureException | io.jsonwebtoken.MalformedJwtException e) {
+            log.debug("JWT signature check/format failed: {}", e.getMessage());
+            sendErrorResponse(response, "JWT token signature is invalid or malformed");
+            return;
         } catch (Exception e) {
             log.debug("JWT filter exception: {}", e.getMessage());
+            sendErrorResponse(response, "Authentication failed");
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {
+        SecurityContextHolder.clearContext();
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(String.format("{\"success\":false,\"message\":\"%s\",\"status\":401}", message));
     }
 
     private String extractToken(HttpServletRequest request) {

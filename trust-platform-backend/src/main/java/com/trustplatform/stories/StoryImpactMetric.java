@@ -25,5 +25,6 @@ public class StoryImpactMetric {
     private String icon; // E.g., "Heart", "Users", etc.
 
     @Column(name = "display_order")
+    @Builder.Default
     private int displayOrder = 0;
 }

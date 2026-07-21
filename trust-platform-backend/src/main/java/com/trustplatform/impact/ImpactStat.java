@@ -22,7 +22,9 @@ public class ImpactStat {
     
     private String icon;
 
+    @Builder.Default
     private boolean featured = false;
 
+    @Builder.Default
     private int displayOrder = 0;
 }

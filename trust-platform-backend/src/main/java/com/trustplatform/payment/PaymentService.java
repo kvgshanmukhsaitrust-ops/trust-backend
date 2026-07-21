@@ -59,6 +59,8 @@ public class PaymentService {
         Donation donation = donationRepository.findById(donationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Donation not found"));
 
+        validateDonationOwnership(donation);
+
         String orderId;
         boolean isSandbox = "dev_razorpay_key".equals(keyId) || "dummy".equals(keyId) || keyId == null || keyId.trim().isEmpty();
         // Sandbox checkout simulation mode check
@@ -104,6 +106,8 @@ public class PaymentService {
         Donation donation = donationRepository.findById(request.getDonationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Donation not found"));
 
+        validateDonationOwnership(donation);
+
         // Idempotency: duplicate click & processing protection
         if (donation.getStatus() == DonationStatus.SUCCESS) {
             log.info("[PaymentService] Donation id={} already processed as SUCCESS. Skipping double verification.", donation.getId());
@@ -116,23 +120,26 @@ public class PaymentService {
             log.info("[PaymentService] Verifying mock order sandbox transaction: {}", request.getRazorpayOrderId());
             donation.setPaymentMethod("Card (Sandbox)");
         } else {
-            // Real cryptographic signature validation
+            // Real cryptographic signature validation using constant-time comparison
             String payload = request.getRazorpayOrderId() + "|" + request.getRazorpayPaymentId();
             String generatedSignature = hmacSha256Hex(payload, keySecret);
 
-            if (!generatedSignature.equals(request.getRazorpaySignature())) {
+            if (request.getRazorpaySignature() == null || !java.security.MessageDigest.isEqual(
+                    generatedSignature.getBytes(StandardCharsets.UTF_8),
+                    request.getRazorpaySignature().getBytes(StandardCharsets.UTF_8))) {
                 donation.setStatus(DonationStatus.FAILED);
                 donation.setErrorDetails("Cryptographic signature validation mismatch.");
                 donationRepository.save(donation);
                 log.error("[PaymentService] Payment signature verification failed for donation id={}", donation.getId());
-                throw new RuntimeException("Invalid payment signature");
+                throw new com.trustplatform.exception.BadRequestException("Invalid payment signature");
             }
             donation.setPaymentMethod("Razorpay Secured Gateway");
         }
 
         donation.setStatus(DonationStatus.SUCCESS); // State Machine: transitioning to SUCCESS
         donation.setTransactionId(request.getRazorpayPaymentId());
-        donation.setReceiptNumber("REC-" + System.currentTimeMillis());
+        String collisionSafeReceipt = "REC-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        donation.setReceiptNumber(collisionSafeReceipt);
         donation.setGatewayResponse("HANDSHAKE_VERIFIED_" + (isMock ? "SANDBOX" : "LIVE"));
 
         donationRepository.save(donation);
@@ -164,9 +171,11 @@ public class PaymentService {
 
         String generatedSignature = hmacSha256Hex(payload, keySecret);
 
-        if (!generatedSignature.equals(signature)) {
+        if (signature == null || !java.security.MessageDigest.isEqual(
+                generatedSignature.getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8))) {
             log.error("[PaymentService] Webhook processing failed: Invalid signature.");
-            throw new RuntimeException("Invalid webhook signature");
+            throw new com.trustplatform.exception.BadRequestException("Invalid webhook signature");
         }
 
         JsonNode root = objectMapper.readTree(payload);
@@ -195,11 +204,19 @@ public class PaymentService {
             if ("payment.captured".equals(event)) {
                 donation.setStatus(DonationStatus.SUCCESS); // State Machine: transitioning to SUCCESS
                 donation.setTransactionId(paymentId);
-                donation.setReceiptNumber("REC-" + System.currentTimeMillis());
+                String collisionSafeReceipt = "REC-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+                donation.setReceiptNumber(collisionSafeReceipt);
                 donation.setPaymentMethod(entity.has("method") ? entity.get("method").asText() : "Razorpay Webhook");
                 donation.setGatewayResponse("WEBHOOK_CONFIRMED_CAPTURED");
 
                 donationRepository.save(donation);
+
+                String sanitizedMetadata = String.format(
+                        "{\"event\":\"WEBHOOK_CAPTURED\",\"payment_id\":\"%s\",\"order_id\":\"%s\",\"method\":\"%s\",\"amount\":%s}",
+                        paymentId, orderId,
+                        entity.has("method") ? entity.get("method").asText() : "unknown",
+                        entity.has("amount") ? entity.get("amount").asText() : "0"
+                );
 
                 // Immutable transaction ledger entry
                 PaymentTransaction tx = PaymentTransaction.builder()
@@ -211,7 +228,7 @@ public class PaymentService {
                         .amount(donation.getAmount())
                         .paymentMethod(donation.getPaymentMethod())
                         .status(PaymentStatus.SUCCESS)
-                        .metadata("{\"event\":\"WEBHOOK_CAPTURED\",\"payload_captured\":" + entity.toString() + "}")
+                        .metadata(sanitizedMetadata)
                         .build();
                 paymentTransactionRepository.save(tx);
 
@@ -226,6 +243,12 @@ public class PaymentService {
                 donation.setGatewayResponse("WEBHOOK_CONFIRMED_FAILED");
                 donationRepository.save(donation);
 
+                String sanitizedMetadata = String.format(
+                        "{\"event\":\"WEBHOOK_FAILED\",\"payment_id\":\"%s\",\"order_id\":\"%s\",\"error\":\"%s\"}",
+                        paymentId, orderId,
+                        entity.has("error_description") ? entity.get("error_description").asText() : "unknown"
+                );
+
                 // Immutable transaction ledger entry for failure
                 PaymentTransaction tx = PaymentTransaction.builder()
                         .correlationId(donation.getCorrelationId() != null ? donation.getCorrelationId() : "TX-CORR-" + UUID.randomUUID().toString())
@@ -236,7 +259,7 @@ public class PaymentService {
                         .amount(donation.getAmount())
                         .status(PaymentStatus.FAILED)
                         .errorDetails(donation.getErrorDetails())
-                        .metadata("{\"event\":\"WEBHOOK_FAILED\",\"payload_captured\":" + entity.toString() + "}")
+                        .metadata(sanitizedMetadata)
                         .build();
                 paymentTransactionRepository.save(tx);
 
@@ -335,14 +358,14 @@ public class PaymentService {
 
         // SAFETY GATE 1: Only SUCCESS donations can be refunded
         if (donation.getStatus() != DonationStatus.SUCCESS) {
-            throw new IllegalStateException(
+            throw new com.trustplatform.exception.DuplicateResourceException(
                 "Only SUCCESS donations can be refunded. Current status: " + donation.getStatus());
         }
 
         // SAFETY GATE 2: Prevent duplicate refunds (idempotency)
         if (donation.getRefundDate() != null) {
-            throw new IllegalStateException(
-                "Donation id=" + donationId + " was already refunded on " + donation.getRefundDate());
+            throw new com.trustplatform.exception.DuplicateResourceException(
+                "Donation was already refunded on " + donation.getRefundDate());
         }
 
         boolean isMock = donation.getGatewayOrderId() != null
@@ -400,5 +423,25 @@ public class PaymentService {
         }
 
         log.info("[PaymentService] Donation id={} transitioned to REFUNDED successfully", donationId);
+    }
+
+    private void validateDonationOwnership(Donation donation) {
+        if (donation.getUser() != null) {
+            org.springframework.security.core.Authentication authentication = 
+                    org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new com.trustplatform.exception.UnauthorizedException("Authentication required to access this donation");
+            }
+            Object principal = authentication.getPrincipal();
+            String currentUsername = null;
+            if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+                currentUsername = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+            } else if (principal instanceof com.trustplatform.user.User) {
+                currentUsername = ((com.trustplatform.user.User) principal).getEmail();
+            }
+            if (currentUsername == null || !donation.getUser().getEmail().equals(currentUsername)) {
+                throw new org.springframework.security.access.AccessDeniedException("Access denied: You do not own this donation");
+            }
+        }
     }
 }

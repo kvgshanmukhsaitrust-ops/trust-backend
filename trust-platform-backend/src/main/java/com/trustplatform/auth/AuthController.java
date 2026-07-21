@@ -52,10 +52,12 @@ public class AuthController {
     public void verifyEmail(@RequestParam("token") String token, HttpServletResponse response) throws java.io.IOException {
         try {
             emailVerificationService.verifyToken(token);
-            log.info("Email verified successfully for token: {}", token);
+            String maskedToken = token.length() > 6 ? token.substring(0, 6) + "..." : "...";
+            log.info("Email verified successfully for token: {}", maskedToken);
             response.sendRedirect(getRedirectBaseUrl() + "/login?verified=true");
         } catch (Exception e) {
-            log.error("Email verification failed for token: {}", token, e);
+            String maskedToken = token.length() > 6 ? token.substring(0, 6) + "..." : "...";
+            log.error("Email verification failed for token: {}", maskedToken, e);
             response.sendRedirect(getRedirectBaseUrl() + "/login?error=invalid");
         }
     }
@@ -110,33 +112,6 @@ public class AuthController {
         }
     }
 
-    @Value("${spring.mail.host:smtp.gmail.com}")
-    private String mailHost;
-
-    @Value("${spring.mail.port:587}")
-    private int mailPort;
-
-    @Value("${spring.mail.username:kvgshanmukhsaitrust@gmail.com}")
-    private String mailUsername;
-
-    @GetMapping("/diag-email")
-    public ResponseEntity<String> diagEmail(@RequestParam("to") String to) {
-        try {
-            emailService.sendEmailSync(to, "Production SMTP Diagnostic Test", "<h2>Production SMTP Test</h2><p>If you see this, SMTP is fully working!</p>");
-            return ResponseEntity.ok("Success: SMTP is fully working! Email sent to " + to);
-        } catch (Exception e) {
-            java.io.StringWriter sw = new java.io.StringWriter();
-            java.io.PrintWriter pw = new java.io.PrintWriter(sw);
-            e.printStackTrace(pw);
-            return ResponseEntity.status(500).body("SMTP Diagnostic Audit Fail!\n\n" +
-                "Active Configured Settings:\n" +
-                "• Host: " + mailHost + "\n" +
-                "• Port: " + mailPort + "\n" +
-                "• Username: " + mailUsername + "\n\n" +
-                "Error Exception: " + e.getMessage() + "\n\n" +
-                "Stacktrace:\n" + sw.toString());
-        }
-    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(

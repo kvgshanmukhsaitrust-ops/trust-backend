@@ -27,6 +27,7 @@ public class ContentVersion {
     private int versionNumber;
 
     @Column(nullable = false, updatable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     
     private String createdBy; // username or user ID who made the change

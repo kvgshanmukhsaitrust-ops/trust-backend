@@ -24,8 +24,11 @@ public class CreateEventRequest {
     private LocalDateTime eventDate;
     private LocalDateTime registrationDeadline;
     private Integer maxVolunteers;
+    @Builder.Default
     private Boolean published = true;
+    @Builder.Default
     private Boolean featured = false;
+    @Builder.Default
     private Integer displayOrder = 0;
     private List<String> highlights;
 

@@ -33,10 +33,13 @@ public class SuccessStory extends BaseAuditableEntity {
 
     private String category;
 
+    @Builder.Default
     private boolean published = true;
 
+    @Builder.Default
     private boolean featured = false;
 
+    @Builder.Default
     private int displayOrder = 0;
 
     // --- New Enterprise Story fields ---
@@ -60,10 +63,12 @@ public class SuccessStory extends BaseAuditableEntity {
 
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
+    @Builder.Default
     private java.util.List<StoryTimelineMilestone> timeline = new java.util.ArrayList<>();
 
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
+    @Builder.Default
     private java.util.List<StoryImpactMetric> metrics = new java.util.ArrayList<>();
 
     @Column(nullable = false, columnDefinition = "boolean default false")

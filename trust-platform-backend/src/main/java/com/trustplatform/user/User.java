@@ -43,6 +43,7 @@ public class User extends BaseAuditableEntity implements UserDetails {
     private Role role;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean isActive = true;
 
     @Enumerated(EnumType.STRING)

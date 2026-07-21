@@ -29,5 +29,6 @@ public class StoryTimelineMilestone {
     private String imageUrl;
 
     @Column(name = "order_index")
+    @Builder.Default
     private int orderIndex = 0;
 }

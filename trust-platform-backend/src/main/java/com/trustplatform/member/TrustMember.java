@@ -34,7 +34,9 @@ public class TrustMember {
 
     private int displayOrder;
 
+    @Builder.Default
     private boolean published = true;
 
+    @Builder.Default
     private boolean featured = false;
 }
