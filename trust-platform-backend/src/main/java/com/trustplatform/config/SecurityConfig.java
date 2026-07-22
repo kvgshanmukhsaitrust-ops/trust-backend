@@ -67,11 +67,11 @@ public class SecurityConfig {
 
                         // Public read-only content
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/impact-stats/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/success-stories/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/members/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/impact-stats", "/api/impact-stats/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/success-stories", "/api/success-stories/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/members", "/api/members/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/media", "/api/media/**").permitAll()
 
                         // Public contact form
                         .requestMatchers(HttpMethod.POST, "/api/messages").permitAll()
