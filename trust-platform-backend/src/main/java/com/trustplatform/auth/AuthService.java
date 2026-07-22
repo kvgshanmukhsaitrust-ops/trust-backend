@@ -53,14 +53,15 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(userRole)
-                .isActive(false) // local registration requires email verification
+                .isActive(true) // local registration email verification turned off, auto-activated
                 .authProvider(com.trustplatform.user.AuthProvider.LOCAL)
                 .build();
         userRepository.save(user);
-        emailVerificationService.sendVerificationEmail(user);
-        log.info("New user registered: {}", request.getEmail());
-        return AuthenticationResponse.builder()
-                .token(null).refreshToken(null).build();
+        log.info("New user registered and auto-activated: {}", request.getEmail());
+        
+        String accessToken = jwtService.generateToken(user);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+        return buildResponse(accessToken, refreshToken, user);
     }
 
     @Transactional

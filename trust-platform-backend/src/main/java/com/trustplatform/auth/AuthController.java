@@ -115,8 +115,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(
-            @Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletResponse response) {
+        AuthenticationResponse auth = authService.register(request);
+        if (auth.getToken() != null) setCookie(response, auth.getToken());
+        return ResponseEntity.ok(auth);
     }
 
     @PostMapping("/login")
