@@ -58,25 +58,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    sendErrorResponse(response, "Invalid token");
-                    return;
+                    log.debug("JWT token is invalid");
+                    SecurityContextHolder.clearContext();
                 }
             } else {
-                sendErrorResponse(response, "Invalid token claims");
-                return;
+                log.debug("JWT token email is null or context already authenticated");
+                SecurityContextHolder.clearContext();
             }
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
             log.debug("JWT token expired: {}", e.getMessage());
-            sendErrorResponse(response, "JWT token has expired");
-            return;
+            SecurityContextHolder.clearContext();
         } catch (io.jsonwebtoken.security.SignatureException | io.jsonwebtoken.MalformedJwtException e) {
             log.debug("JWT signature check/format failed: {}", e.getMessage());
-            sendErrorResponse(response, "JWT token signature is invalid or malformed");
-            return;
+            SecurityContextHolder.clearContext();
         } catch (Exception e) {
             log.debug("JWT filter exception: {}", e.getMessage());
-            sendErrorResponse(response, "Authentication failed");
-            return;
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
