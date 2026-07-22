@@ -93,6 +93,30 @@ public class DataInitializer implements CommandLineRunner {
             logger.info("Admin user already exists. Force updated credentials.");
         }
 
+        // 1b. Seed Secondary Platform Administrator
+        String admin2Email = "admin2@trust.org";
+        User admin2User = null;
+        if (!userRepository.existsByEmail(admin2Email)) {
+            logger.info("Seeding Secondary Admin user account.");
+            admin2User = User.builder()
+                    .fullName("Secondary Platform Administrator")
+                    .email(admin2Email)
+                    .password(passwordEncoder.encode("admin123"))
+                    .role(Role.ADMIN)
+                    .isActive(true)
+                    .build();
+            admin2User = userRepository.save(admin2User);
+        } else {
+            admin2User = userRepository.findByEmail(admin2Email).orElse(null);
+            if (admin2User != null) {
+                admin2User.setPassword(passwordEncoder.encode("admin123"));
+                admin2User.setRole(Role.ADMIN);
+                admin2User.setActive(true);
+                admin2User = userRepository.save(admin2User);
+            }
+            logger.info("Secondary Admin user already exists. Force updated credentials.");
+        }
+
         // 2. Seed Mock Donor User
         String donorEmail = "donor@trust.org";
         User donorUser = null;
