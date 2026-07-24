@@ -58,7 +58,7 @@ public class SecurityConfig {
                     headers.contentSecurityPolicy(csp -> csp
                             .policyDirectives(
                                     "default-src 'self'; " +
-                                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com; " +
+                                    "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://accounts.google.com; " +
                                     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                                     "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://via.placeholder.com https://lh3.googleusercontent.com; " +
                                     "font-src 'self' data: https://fonts.gstatic.com; " +
