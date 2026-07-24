@@ -49,12 +49,24 @@ public class SecurityConfig {
                     headers.contentTypeOptions(Customizer.withDefaults());
                     headers.frameOptions(frame -> frame.deny());
                     headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN));
-                    headers.permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=()"));
+                    headers.permissionsPolicy(permissions -> permissions.policy("geolocation=(), microphone=(), camera=(), usb=(), bluetooth=()"));
+                    headers.httpStrictTransportSecurity(hsts -> hsts
+                            .includeSubDomains(true)
+                            .maxAgeInSeconds(31536000)
+                            .preload(true)
+                    );
                     headers.contentSecurityPolicy(csp -> csp
                             .policyDirectives(
                                     "default-src 'self'; " +
-                                    "script-src 'self'; " +
-                                    "frame-ancestors 'none'"
+                                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.razorpay.com https://accounts.google.com; " +
+                                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                                    "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://via.placeholder.com https://lh3.googleusercontent.com; " +
+                                    "font-src 'self' data: https://fonts.gstatic.com; " +
+                                    "connect-src 'self' ws: wss: https://api.razorpay.com https://checkout.razorpay.com; " +
+                                    "frame-src 'self' https://checkout.razorpay.com https://www.youtube.com https://accounts.google.com; " +
+                                    "media-src 'self' data: blob: https://res.cloudinary.com https://assets.mixkit.co; " +
+                                    "object-src 'none'; " +
+                                    "frame-ancestors 'none';"
                             )
                     );
                 })
