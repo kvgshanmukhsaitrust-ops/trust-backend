@@ -13,4 +13,5 @@ public interface VolunteerRepository extends JpaRepository<VolunteerApplication,
     List<VolunteerApplication> findByUserId(Long userId);
     boolean existsByUserIdAndEventId(Long userId, Long eventId);
     List<VolunteerApplication> findByAttendanceVerifiedTrue();
+    void deleteByUserId(Long userId);
 }

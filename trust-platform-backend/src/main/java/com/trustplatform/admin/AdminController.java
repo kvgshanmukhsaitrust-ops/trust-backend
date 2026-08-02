@@ -61,6 +61,26 @@ public class AdminController {
     }
 
     // ===============================
+    // DELETE USER
+    // ===============================
+    @DeleteMapping("/users/{userId}")
+    @PreAuthorize("hasAuthority('MANAGE_USERS')")
+    @AuditAction("DELETE_USER")
+    public ResponseEntity<ApiSuccessResponse<String>> deleteUser(@PathVariable Long userId) {
+
+        adminService.deleteUser(userId);
+
+        return ResponseEntity.ok(
+                ApiSuccessResponse.<String>builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(200)
+                        .message("User deleted successfully")
+                        .data("User " + userId + " and all related records were deleted")
+                        .build()
+        );
+    }
+
+    // ===============================
     // GET ALL VOLUNTEERS
     // ===============================
     @GetMapping("/volunteers")

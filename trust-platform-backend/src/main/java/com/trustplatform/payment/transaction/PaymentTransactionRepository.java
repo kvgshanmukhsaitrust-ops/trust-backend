@@ -9,4 +9,6 @@ public interface PaymentTransactionRepository
 
     Optional<PaymentTransaction> findByGatewayOrderId(String orderId);
 
+    void deleteByDonation_Id(Long donationId);
+
 }

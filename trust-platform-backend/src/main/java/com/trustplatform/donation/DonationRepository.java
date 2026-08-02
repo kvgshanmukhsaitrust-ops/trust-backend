@@ -14,4 +14,6 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
     Page<Donation> findByStatus(DonationStatus status, Pageable pageable);
 
     Optional<Donation> findByGatewayOrderId(String gatewayOrderId);
+
+    void deleteByUser_Id(Long userId);
 }

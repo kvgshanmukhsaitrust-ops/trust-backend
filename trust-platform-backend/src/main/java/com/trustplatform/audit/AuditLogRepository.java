@@ -17,4 +17,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     Page<AuditLog> searchLogs(@Param("search") String search, @Param("status") String status, Pageable pageable);
 
     long countByStatus(String status);
+
+    void deleteByPerformedBy(String performedBy);
 }
