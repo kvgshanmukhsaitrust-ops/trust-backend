@@ -3,6 +3,7 @@ package com.trustplatform.email;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -37,12 +38,24 @@ public class EmailService {
     }
 
     public void sendEmailSync(String to, String subject, String body) throws Exception {
-        // If password is a Brevo API key, bypass SMTP completely and send via HTTPS API (Port 443)
-        // BUT if port is 2525, allow standard SMTP because port 2525 is whitelisted and not blocked by Railway!
-        if (mailPassword != null && mailPassword.trim().startsWith("xsmtpsib-") && mailPort != 2525) {
+        String resolvedHost = "unknown";
+        if (mailSender instanceof JavaMailSenderImpl) {
+            resolvedHost = ((JavaMailSenderImpl) mailSender).getHost();
+        }
+        String pwdPrefix = (mailPassword != null && mailPassword.trim().length() >= 6) ? mailPassword.trim().substring(0, 6) : "none";
+        int pwdLength = (mailPassword != null) ? mailPassword.trim().length() : 0;
+        boolean isBrevoApiKey = mailPassword != null && mailPassword.trim().startsWith("xkeysib-");
+
+        // If password is a Brevo REST API key (starts with xkeysib-), bypass SMTP completely and send via HTTPS API (Port 443)
+        if (isBrevoApiKey) {
+            log.info("[EmailService] Using provider: BREVO_API | Mail Host: {} | Mail Port: {} | Mail Username: {} | Password prefix: {} | Password length: {}",
+                    resolvedHost, mailPort, mailFrom, pwdPrefix, pwdLength);
             sendViaBrevoApi(to, subject, body);
             return;
         }
+
+        log.info("[EmailService] Using provider: SMTP | Mail Host: {} | Mail Port: {} | Mail Username: {} | Password prefix: {} | Password length: {}",
+                resolvedHost, mailPort, mailFrom, pwdPrefix, pwdLength);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
