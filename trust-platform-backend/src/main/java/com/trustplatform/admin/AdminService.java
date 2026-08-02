@@ -2,6 +2,7 @@ package com.trustplatform.admin;
 
 import com.trustplatform.donation.Donation;
 import com.trustplatform.donation.DonationRepository;
+import com.trustplatform.exception.ResourceNotFoundException;
 import com.trustplatform.user.Role;
 import com.trustplatform.user.User;
 import com.trustplatform.user.UserRepository;
@@ -38,6 +39,18 @@ public class AdminService {
     // ===============================
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    // ===============================
+    // DELETE USER
+    // ===============================
+    public void deleteUser(Long userId) {
+
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+
+        userRepository.deleteById(userId);
     }
 
     // ===============================
