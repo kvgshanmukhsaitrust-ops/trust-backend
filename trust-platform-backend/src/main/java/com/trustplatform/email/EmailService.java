@@ -21,6 +21,12 @@ public class EmailService {
     @org.springframework.beans.factory.annotation.Value("${spring.mail.username}")
     private String mailFrom;
 
+    @org.springframework.beans.factory.annotation.Value("${app.mail.from.email:kvgshanmukhsaitrust@gmail.com}")
+    private String fromEmail;
+
+    @org.springframework.beans.factory.annotation.Value("${app.mail.from.name:KVG Sai Charitable Trust}")
+    private String fromName;
+
     @org.springframework.beans.factory.annotation.Value("${spring.mail.password}")
     private String mailPassword;
 
@@ -48,14 +54,12 @@ public class EmailService {
 
         // If password is a Brevo REST API key (starts with xkeysib-), bypass SMTP completely and send via HTTPS API (Port 443)
         if (isBrevoApiKey) {
-            log.info("[EmailService] Using provider: BREVO_API | Mail Host: {} | Mail Port: {} | Mail Username: {} | Password prefix: {} | Password length: {}",
-                    resolvedHost, mailPort, mailFrom, pwdPrefix, pwdLength);
             sendViaBrevoApi(to, subject, body);
             return;
         }
 
-        log.info("[EmailService] Using provider: SMTP | Mail Host: {} | Mail Port: {} | Mail Username: {} | Password prefix: {} | Password length: {}",
-                resolvedHost, mailPort, mailFrom, pwdPrefix, pwdLength);
+        log.info("[EmailService] Using provider: SMTP | Sender: {} | Recipient: {} | Subject: {}",
+                mailFrom, to.trim(), subject);
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -89,13 +93,18 @@ public class EmailService {
 
             boolean isHtml = body.contains("<p>") || body.contains("<html>") || body.contains("<h2>") || body.contains("</a>");
 
-            // Construct JSON payload securely
+            // Construct JSON payload securely using centralized sender properties
+            String escapedFromEmail = (fromEmail != null && fromEmail.contains("@")) ? fromEmail.trim() : "kvgshanmukhsaitrust@gmail.com";
+            String escapedFromName = (fromName != null) ? fromName.trim() : "KVG Sai Charitable Trust";
+
+            log.info("[EmailService] Using provider: BREVO_API | Sender: {} <{}> | Recipient: {} | Subject: {}",
+                    escapedFromName, escapedFromEmail, to.trim(), subject);
+
             String escapedBody = escapeJson(body);
             String escapedSubject = escapeJson(subject);
-            String escapedFrom = (mailFrom != null && mailFrom.contains("@")) ? mailFrom.trim() : "kvgshanmukhsaitrust@gmail.com";
 
             String jsonPayload = "{"
-                + "\"sender\":{\"name\":\"Trust Platform\",\"email\":\"" + escapedFrom + "\"},"
+                + "\"sender\":{\"name\":\"" + escapeJson(escapedFromName) + "\",\"email\":\"" + escapedFromEmail + "\"},"
                 + "\"to\":[{\"email\":\"" + to.trim() + "\"}],"
                 + "\"subject\":\"" + escapedSubject + "\","
                 + (isHtml ? "\"htmlContent\":\"" + escapedBody + "\"" : "\"textContent\":\"" + escapedBody + "\"")
