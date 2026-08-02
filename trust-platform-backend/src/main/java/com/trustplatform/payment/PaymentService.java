@@ -308,14 +308,21 @@ public class PaymentService {
     // ===============================
     private void sendDonationEmail(Donation donation) {
         try {
+            String dateStr = donation.getCreatedAt() != null 
+                ? java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(donation.getCreatedAt())
+                : java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now());
+
             String body = emailTemplateBuilder.buildDonationSuccessEmail(
                     donation.getDonorName(),
-                    donation.getReceiptNumber()
+                    donation.getReceiptNumber(),
+                    donation.getAmount().doubleValue(),
+                    dateStr,
+                    String.valueOf(donation.getId())
             );
 
             emailService.sendEmail(
                     donation.getDonorEmail(),
-                    "Donation Receipt Confirmation",
+                    "Donation Receipt Confirmation - KVGS Sai Trust",
                     body
             );
 

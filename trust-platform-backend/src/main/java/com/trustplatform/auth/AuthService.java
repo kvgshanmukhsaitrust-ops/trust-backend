@@ -23,6 +23,8 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
     private final EmailVerificationService emailVerificationService;
+    private final com.trustplatform.email.EmailService emailService;
+    private final com.trustplatform.email.EmailTemplateBuilder emailTemplateBuilder;
 
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
@@ -59,6 +61,13 @@ public class AuthService {
         userRepository.save(user);
         log.info("New user registered and auto-activated: {}", request.getEmail());
         
+        try {
+            String emailBody = emailTemplateBuilder.buildWelcomeEmail(user.getFullName());
+            emailService.sendEmail(user.getEmail(), "Welcome to KVGS Sai Charitable Trust", emailBody);
+        } catch (Exception e) {
+            log.error("Failed to send welcome email to {}", user.getEmail(), e);
+        }
+        
         String accessToken = jwtService.generateToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
         return buildResponse(accessToken, refreshToken, user);
@@ -78,6 +87,12 @@ public class AuthService {
                             .build();
                     User saved = userRepository.save(user);
                     log.info("New OAuth user provisioned: {}", email);
+                    try {
+                        String emailBody = emailTemplateBuilder.buildGoogleWelcomeEmail(saved.getFullName());
+                        emailService.sendEmail(saved.getEmail(), "Welcome to KVGS Sai Charitable Trust", emailBody);
+                    } catch (Exception e) {
+                        log.error("Failed to send Google OAuth welcome email to {}", email, e);
+                    }
                     return saved;
                 });
     }

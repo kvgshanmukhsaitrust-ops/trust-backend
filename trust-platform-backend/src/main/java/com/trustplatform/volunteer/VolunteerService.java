@@ -30,6 +30,8 @@ public class VolunteerService {
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
     private final NotificationService notificationService;
+    private final com.trustplatform.email.EmailService emailService;
+    private final com.trustplatform.email.EmailTemplateBuilder emailTemplateBuilder;
  
     // ============================
     // APPLY FOR EVENT
@@ -140,24 +142,26 @@ public class VolunteerService {
     // ============================
     private void sendStatusEmail(VolunteerApplication application, String status) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(application.getUser().getEmail());
-            message.setSubject("Volunteer Application Update - "
-                    + application.getEvent().getTitle());
- 
-            String content = "APPROVED".equals(status)
-                    ? "Congratulations! Your application for "
-                            + application.getEvent().getTitle() + " has been approved."
-                    : "We regret to inform you that your application for "
-                            + application.getEvent().getTitle()
-                            + " was not accepted at this time.";
- 
-            message.setText("Hello " + application.getUser().getFullName()
-                    + ",\n\n" + content + "\n\nRegards,\nTrust Team");
- 
-            mailSender.send(message);
+            String emailBody;
+            if ("APPROVED".equals(status)) {
+                emailBody = emailTemplateBuilder.buildVolunteerApprovalEmail(
+                        application.getUser().getFullName(),
+                        application.getEvent().getTitle()
+                );
+            } else {
+                emailBody = emailTemplateBuilder.buildVolunteerRejectionEmail(
+                        application.getUser().getFullName(),
+                        application.getEvent().getTitle()
+                );
+            }
+
+            emailService.sendEmail(
+                    application.getUser().getEmail(),
+                    "Volunteer Application Update - " + application.getEvent().getTitle(),
+                    emailBody
+            );
             log.info("Status email sent to {}", application.getUser().getEmail());
- 
+
         } catch (Exception e) {
             log.error("Failed to send status email to {} for application {}: {}",
                     application.getUser().getEmail(),

@@ -5,11 +5,13 @@ import com.trustplatform.auth.password.dto.ResetPasswordRequest;
 import com.trustplatform.email.EmailService;
 import com.trustplatform.email.EmailTemplateBuilder;
 import com.trustplatform.exception.ResourceNotFoundException;
+import com.trustplatform.exception.BadRequestException;
 import com.trustplatform.user.User;
 import com.trustplatform.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -44,6 +46,7 @@ public class PasswordResetService {
         return "http://localhost:5173";
     }
 
+    @Transactional
     public void requestPasswordReset(ForgotPasswordRequest request, String origin) {
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -82,26 +85,37 @@ public class PasswordResetService {
         );
     }
 
+    @Transactional
     public void resetPassword(ResetPasswordRequest request) {
 
         PasswordResetToken token = tokenRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new ResourceNotFoundException("Invalid token"));
 
         if (token.isUsed()) {
-            throw new RuntimeException("Token already used");
+            throw new BadRequestException("This password reset link has already been used. Please request a new one.");
         }
 
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expired");
+            throw new BadRequestException("This password reset link has expired. Please request a new one.");
         }
 
         User user = token.getUser();
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setActive(true);
 
         userRepository.save(user);
 
         token.setUsed(true);
         tokenRepository.save(token);
+
+        try {
+            String dateStr = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now());
+            String emailBody = emailTemplateBuilder.buildPasswordChangedEmail(user.getFullName(), dateStr);
+            emailService.sendEmail(user.getEmail(), "Password Changed Successfully", emailBody);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(PasswordResetService.class)
+                .warn("Failed to send password changed confirmation email for {}", user.getEmail(), e);
+        }
     }
 }

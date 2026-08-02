@@ -30,6 +30,7 @@ public class AssistanceCaseService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final com.trustplatform.email.EmailTemplateBuilder emailTemplateBuilder;
     private final AiService aiService;
 
     @Transactional
@@ -99,8 +100,12 @@ public class AssistanceCaseService {
 
             // Send Email confirmation to Applicant
             try {
-                emailService.sendEmail(applicant.getEmail(), "Assistance Application Received: " + caseNumber,
-                        "Dear " + applicant.getFullName() + ",\n\nWe have received your application for " + req.getCategory() + " assistance. Your Case Number is " + caseNumber + ".\n\nYou can track the status on your dashboard.");
+                String emailBody = emailTemplateBuilder.buildCaseCreatedEmail(
+                        applicant.getFullName(),
+                        caseNumber,
+                        req.getCategory().name()
+                );
+                emailService.sendEmail(applicant.getEmail(), "Assistance Application Received: " + caseNumber, emailBody);
             } catch (Exception e) {
                 log.error("Failed to send case confirmation email to {}", applicant.getEmail(), e);
             }
@@ -180,8 +185,14 @@ public class AssistanceCaseService {
 
         // Send Email alert
         try {
-            emailService.sendEmail(c.getApplicant().getEmail(), "Case Update: " + caseNumber,
-                    "Dear " + c.getApplicant().getFullName() + ",\n\nYour case status has been updated from " + oldStatus + " to " + newStatus + ".\n\nNotes: " + comment);
+            String emailBody = emailTemplateBuilder.buildCaseUpdatedEmail(
+                    c.getApplicant().getFullName(),
+                    caseNumber,
+                    oldStatus.name(),
+                    newStatus.name(),
+                    comment
+            );
+            emailService.sendEmail(c.getApplicant().getEmail(), "Case Update: " + caseNumber, emailBody);
         } catch (Exception e) {
             log.error("Failed to send status update email", e);
         }

@@ -1,17 +1,23 @@
 package com.trustplatform.message;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.trustplatform.email.EmailService;
+import com.trustplatform.email.EmailTemplateBuilder;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/messages")
 @RequiredArgsConstructor
 public class MessageController {
 
     private final MessageRepository repository;
+    private final EmailService emailService;
+    private final EmailTemplateBuilder emailTemplateBuilder;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -21,7 +27,22 @@ public class MessageController {
 
     @PostMapping
     public ContactMessage submitMessage(@RequestBody ContactMessage message) {
-        return repository.save(message);
+        ContactMessage saved = repository.save(message);
+
+        // Send acknowledgement email asynchronously
+        try {
+            if (message.getEmail() != null && !message.getEmail().trim().isEmpty()) {
+                String emailBody = emailTemplateBuilder.buildContactConfirmationEmail(
+                        message.getName() != null ? message.getName() : "Visitor",
+                        message.getMessage()
+                );
+                emailService.sendEmail(message.getEmail(), "Thank you for contacting us - KVGS Sai Trust", emailBody);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send contact form confirmation email to {}", message.getEmail(), e);
+        }
+
+        return saved;
     }
 
     @PutMapping("/{id}/read")
