@@ -160,18 +160,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<environmentVariables>
-						<MYSQLHOST>localhost</MYSQLHOST>
-						<MYSQLPORT>3306</MYSQLPORT>
-						<MYSQLDATABASE>trustplatform</MYSQLDATABASE>
-						<MYSQLUSER>root</MYSQLUSER>
-						<MYSQLPASSWORD>Rohith@358</MYSQLPASSWORD>
-						<JWT_SECRET>94a08da1fecbb6e8b46990538c7b50b25e79ea5b8dbcb617cf70fa1d8e6e580e</JWT_SECRET>
-						<GOOGLE_CLIENT_ID>dummy</GOOGLE_CLIENT_ID>
-						<GOOGLE_CLIENT_SECRET>dummy</GOOGLE_CLIENT_SECRET>
-					</environmentVariables>
-				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

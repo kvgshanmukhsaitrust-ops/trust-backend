@@ -79,7 +79,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/payments/webhook", "/error", "/uploads/**", "/ws/**", "/actuator/health", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/donations").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/create-order/**", "/api/payments/verify").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/donations/*/receipt").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/donations/receipt/uuid/*").permitAll()
 
                         // Public read-only content
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
@@ -110,6 +110,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH,  "/api/impact-stats/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/impact-stats/**").authenticated()
                         .requestMatchers("/api/admin/**").authenticated()
+
+                        // Public read-only volunteer leaderboard (no @PreAuthorize on controller — explicitly public)
+                        .requestMatchers(HttpMethod.GET, "/api/volunteers/leaderboard").permitAll()
 
                         // Volunteer: any authenticated user can apply
                         .requestMatchers(HttpMethod.POST, "/api/volunteers/apply").authenticated()

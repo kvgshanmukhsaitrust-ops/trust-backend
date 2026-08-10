@@ -90,7 +90,7 @@ public class AssistanceCaseController {
         // Security check: Only applicant or administrative users (officers/admins) can view
         boolean isAdminOrOfficer = user.getRole().getPermissions().contains(Permission.MANAGE_APPLICATIONS);
         if (!isAdminOrOfficer && !c.getApplicant().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You are not authorized to view this case.");
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to view this case.");
         }
 
         return ResponseEntity.ok(
@@ -356,7 +356,7 @@ public class AssistanceCaseController {
         // Security check: Only applicant or officers can upload documents
         boolean isAdminOrOfficer = user.getRole().getPermissions().contains(Permission.MANAGE_APPLICATIONS);
         if (!isAdminOrOfficer && !c.getApplicant().getId().equals(user.getId())) {
-            throw new UnauthorizedException("You are not authorized to upload documents for this case.");
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to upload documents for this case.");
         }
 
         CaseDocument doc = caseService.uploadDocument(caseNumber, docName, docUrl, publicId, fileType);
@@ -395,7 +395,7 @@ public class AssistanceCaseController {
         // Security check: Only applicant or administrative users can send messages
         boolean isAdminOrOfficer = sender.getRole().getPermissions().contains(Permission.MANAGE_APPLICATIONS);
         if (!isAdminOrOfficer && !c.getApplicant().getId().equals(sender.getId())) {
-            throw new UnauthorizedException("You are not authorized to participate in this communication.");
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to participate in this communication.");
         }
 
         // Applicants cannot send internal notes
@@ -433,6 +433,14 @@ public class AssistanceCaseController {
             @AuthenticationPrincipal UserDetails userDetails) {
         
         User viewer = getUserByEmail(userDetails.getUsername());
+        AssistanceCase c = caseService.getCaseByNumber(caseNumber);
+
+        // Security check: Only applicant or administrative users (officers/admins) can view messages
+        boolean isAdminOrOfficer = viewer.getRole().getPermissions().contains(Permission.MANAGE_APPLICATIONS);
+        if (!isAdminOrOfficer && !c.getApplicant().getId().equals(viewer.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to view messages for this case.");
+        }
+
         List<CaseMessageResponse> responses = caseService.getMessagesForCase(caseNumber, viewer).stream()
                 .map(m -> CaseMessageResponse.builder()
                         .id(m.getId())

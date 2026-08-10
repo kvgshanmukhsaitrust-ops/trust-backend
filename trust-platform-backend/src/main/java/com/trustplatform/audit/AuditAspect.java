@@ -76,6 +76,13 @@ public class AuditAspect {
                     String name = paramNames[i];
                     if (name.equalsIgnoreCase("password") || name.equalsIgnoreCase("token") || name.equalsIgnoreCase("secret")) {
                         sb.append(name).append("=[MASKED]; ");
+                    } else if (args[i] instanceof org.springframework.web.multipart.MultipartFile) {
+                        String filename = ((org.springframework.web.multipart.MultipartFile) args[i]).getOriginalFilename();
+                        sb.append(name).append("=").append(filename).append("; ");
+                    } else if (args[i] instanceof jakarta.servlet.ServletRequest || args[i] instanceof jakarta.servlet.ServletResponse) {
+                        sb.append(name).append("=[ServletObject]; ");
+                    } else if (args[i] instanceof org.springframework.security.core.Authentication) {
+                        sb.append(name).append("=").append(((org.springframework.security.core.Authentication) args[i]).getName()).append("; ");
                     } else {
                         String valueStr = args[i] != null ? objectMapper.writeValueAsString(args[i]) : "null";
                         sb.append(name).append("=").append(sanitize(valueStr)).append("; ");

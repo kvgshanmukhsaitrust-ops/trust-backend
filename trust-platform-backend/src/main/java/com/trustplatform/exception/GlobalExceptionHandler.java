@@ -24,6 +24,7 @@ public class GlobalExceptionHandler {
 
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final com.trustplatform.common.sentry.SentryPlaceholderService sentryPlaceholderService;
 
     // ==============================
     // Validation Errors (@Valid DTO)
@@ -191,6 +192,22 @@ public class GlobalExceptionHandler {
             org.springframework.security.access.AccessDeniedException ex,
             HttpServletRequest request) {
 
+        org.springframework.security.core.Authentication auth = 
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        
+        if (ex.getMessage() != null && ex.getMessage().contains("Registration of administrator accounts")) {
+            ApiResponse<Object> response = ApiResponse.error(
+                    ex.getMessage(),
+                    HttpStatus.FORBIDDEN.value()
+            );
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+
+        if (auth == null || !auth.isAuthenticated() || 
+            auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken) {
+            return buildResponse("Access denied. You must be authenticated to perform this action.", HttpStatus.UNAUTHORIZED);
+        }
+
         String details = "Access denied for URI: " + request.getRequestURI() + 
                          " [" + request.getMethod() + "]. User lacks required authority.";
         log.warn("SECURITY WARNING: {} | Exception: {}", details, ex.getMessage());
@@ -263,6 +280,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.error("Unhandled exception occurred at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+        sentryPlaceholderService.captureException(ex);
 
         ApiResponse<Object> response = ApiResponse.error(
                 "An internal server error occurred. Please try again later.",

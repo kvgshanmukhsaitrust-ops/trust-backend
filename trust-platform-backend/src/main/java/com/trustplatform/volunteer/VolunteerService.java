@@ -335,7 +335,7 @@ public class VolunteerService {
     // ============================
     // MAPPER
     // ============================
-    private VolunteerResponse mapToResponse(VolunteerApplication app) {
+    public VolunteerResponse mapToResponse(VolunteerApplication app) {
         return VolunteerResponse.builder()
                 .id(app.getId())
                 .eventId(app.getEvent().getId())

@@ -30,5 +30,13 @@ public class DatabaseSchemaRefiner {
         } catch (Exception e) {
             log.warn("[DatabaseSchemaRefiner] Failed to execute role alter query: {}.", e.getMessage());
         }
+
+        try {
+            log.info("[DatabaseSchemaRefiner] Altering donations.donor_pan to VARCHAR(255) to support encrypted values...");
+            jdbcTemplate.execute("ALTER TABLE donations MODIFY COLUMN donor_pan VARCHAR(255);");
+            log.info("[DatabaseSchemaRefiner] Alter on donations.donor_pan successfully executed!");
+        } catch (Exception e) {
+            log.warn("[DatabaseSchemaRefiner] Failed to execute donor_pan alter query: {}.", e.getMessage());
+        }
     }
 }

@@ -23,7 +23,7 @@ public class PaymentController {
     // CREATE RAZORPAY ORDER
     // =========================================
     @PostMapping("/create-order/{donationId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() or @paymentService.isGuestDonation(#donationId)")
     public ResponseEntity<ApiSuccessResponse<CreateOrderResponse>> createOrder(
             @PathVariable Long donationId) throws Exception {
 
@@ -38,7 +38,7 @@ public class PaymentController {
     // VERIFY PAYMENT (client callback)
     // =========================================
     @PostMapping("/verify")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated() or @paymentService.isGuestDonation(#request.donationId)")
     public ResponseEntity<ApiSuccessResponse<String>> verifyPayment(
             @jakarta.validation.Valid @RequestBody VerifyPaymentRequest request) throws Exception {
 

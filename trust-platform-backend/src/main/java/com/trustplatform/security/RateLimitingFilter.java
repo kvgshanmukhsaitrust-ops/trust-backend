@@ -32,6 +32,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     @Value("${rate-limit.auth.refill-seconds:60}")
     private int refillSeconds;
 
+    @Value("${rate-limit.donation.capacity:5}")
+    private int donationCapacity;
+
+    @Value("${rate-limit.upload.capacity:3}")
+    private int uploadCapacity;
+
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     @Override
@@ -40,30 +46,86 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        if (!request.getRequestURI().startsWith("/api/auth/")) {
+        String uri = request.getRequestURI();
+
+        if (!isRateLimitedRoute(request)) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        String routeType = getRouteType(request);
         String ip = resolveIp(request);
-        Bucket bucket = buckets.computeIfAbsent(ip, k ->
-                Bucket.builder()
-                        .addLimit(Bandwidth.classic(capacity,
-                                Refill.greedy(refillTokens,
-                                        Duration.ofSeconds(refillSeconds))))
-                        .build());
+        String key = ip + ":" + routeType;
+
+        Bucket bucket = buckets.computeIfAbsent(key, k -> createBucketForRoute(routeType));
 
         if (bucket.tryConsume(1)) {
             filterChain.doFilter(request, response);
         } else {
-            log.warn("Rate limit exceeded: ip={}, uri={}",
-                    ip, request.getRequestURI());
+            log.warn("Rate limit exceeded: ip={}, key={}, uri={}", ip, key, uri);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write(
                 "{\"status\":429,\"title\":\"Too Many Requests\"," +
-                "\"detail\":\"Max 10 auth attempts per 60 seconds.\"}");
+                "\"detail\":\"Max attempts exceeded for this route. Please try again later.\"}");
         }
+    }
+
+    private boolean isRateLimitedRoute(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String method = request.getMethod();
+
+        if (uri.startsWith("/api/auth/")) {
+            return true;
+        }
+        if (uri.equals("/api/donations") && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
+        if (uri.startsWith("/api/payments/create-order/") && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
+        if (uri.equals("/api/media/upload") && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
+        return false;
+    }
+
+    private String getRouteType(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String method = request.getMethod();
+
+        if (uri.equals("/api/donations") && "POST".equalsIgnoreCase(method)) {
+            return "DONATION";
+        }
+        if (uri.startsWith("/api/payments/create-order/") && "POST".equalsIgnoreCase(method)) {
+            return "DONATION";
+        }
+        if (uri.equals("/api/media/upload") && "POST".equalsIgnoreCase(method)) {
+            return "UPLOAD";
+        }
+        return "AUTH";
+    }
+
+    private Bucket createBucketForRoute(String routeType) {
+        int cap = capacity;
+        int refill = refillTokens;
+        int seconds = refillSeconds;
+
+        if ("DONATION".equals(routeType)) {
+            cap = donationCapacity;
+            refill = donationCapacity;
+            seconds = 60;
+        } else if ("UPLOAD".equals(routeType)) {
+            cap = uploadCapacity;
+            refill = uploadCapacity;
+            seconds = 60;
+        }
+
+        return Bucket.builder()
+                .addLimit(Bandwidth.classic(cap,
+                        Refill.greedy(refill,
+                                Duration.ofSeconds(seconds))))
+                .build();
     }
 
     private String resolveIp(HttpServletRequest request) {

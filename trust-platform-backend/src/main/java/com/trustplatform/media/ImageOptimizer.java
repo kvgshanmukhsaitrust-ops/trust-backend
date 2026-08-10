@@ -30,10 +30,16 @@ public class ImageOptimizer {
             dir.mkdirs();
         }
 
-        // Read source image
-        BufferedImage srcImg = ImageIO.read(file.getInputStream());
+        // Read source image — catches IIOException and other IOExceptions from malformed/truncated files
+        BufferedImage srcImg;
+        try {
+            srcImg = ImageIO.read(file.getInputStream());
+        } catch (IOException e) {
+            log.warn("ImageIO failed to read image data for file '{}': {}", file.getOriginalFilename(), e.getMessage());
+            throw new IllegalArgumentException("Image data could not be processed. The file may be corrupted or not a supported image format.");
+        }
         if (srcImg == null) {
-            throw new IllegalArgumentException("Invalid image file or format.");
+            throw new IllegalArgumentException("Unsupported or unreadable image format. Please upload a valid JPEG or PNG file.");
         }
 
         // Rescale image if it exceeds max dimensions

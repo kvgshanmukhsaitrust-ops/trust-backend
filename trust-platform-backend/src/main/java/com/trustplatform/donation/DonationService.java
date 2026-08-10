@@ -148,8 +148,8 @@ public class DonationService {
     }
 
     public Donation getDonationById(Long donationId) {
-        return donationRepository.findById(donationId)
-                .orElseThrow(() -> new RuntimeException("Donation not found"));
+        return donationRepository.findByIdWithUser(donationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Donation not found"));
     }
 
     // =========================================
@@ -249,6 +249,9 @@ public class DonationService {
                 donation.setTransactionId(transactionId);
                 donation.setReceiptNumber("REC-" + System.currentTimeMillis());
                 donation.setPaymentMethod("Razorpay Webhook");
+            } else {
+                log.info("[DonationService] Webhook duplicate check: Donation id={} is already SUCCESS. Skipping processing.", donation.getId());
+                return;
             }
         }
 
@@ -264,5 +267,10 @@ public class DonationService {
         });
 
         triggerSuccessNotifications(donation);
+    }
+
+    public Donation getDonationByReceiptUuid(String receiptUuid) {
+        return donationRepository.findByReceiptUuid(receiptUuid)
+                .orElseThrow(() -> new ResourceNotFoundException("Donation not found for UUID: " + receiptUuid));
     }
 }

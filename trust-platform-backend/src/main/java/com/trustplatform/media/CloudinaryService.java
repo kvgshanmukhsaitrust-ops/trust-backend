@@ -123,6 +123,21 @@ public class CloudinaryService {
             metadata.put("media_type", "VIDEO");
             
             log.info("Saved local fallback video to URL: {}", localUrl);
+        } else if (file.getContentType() != null && file.getContentType().toLowerCase().contains("pdf")) {
+            // Save local PDF directly
+            String extension = "pdf";
+            String filename = uniqueId + "." + extension;
+            File targetFile = new File(dir, filename);
+            Files.copy(file.getInputStream(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            String localUrl = "/uploads/" + filename;
+            metadata.put("secure_url", localUrl);
+            metadata.put("public_id", "local_doc_" + uniqueId);
+            metadata.put("width", 0);
+            metadata.put("height", 0);
+            metadata.put("aspect_ratio", 0.0);
+            metadata.put("duration", null);
+            metadata.put("media_type", "IMAGE");
+            log.info("Saved local fallback PDF to URL: {}", localUrl);
         } else {
             // Optimize and save image locally
             String localUrl = imageOptimizer.optimizeAndSave(file, uploadDir);

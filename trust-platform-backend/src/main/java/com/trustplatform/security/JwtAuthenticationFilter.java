@@ -26,6 +26,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.environment:prod}")
+    private String appEnvironment;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -40,23 +43,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = extractToken(request);
 
         if (jwt == null) {
+            String uri = request.getRequestURI();
+            if (uri.startsWith("/api/") && !uri.startsWith("/api/auth/") && !uri.startsWith("/api/payments/webhook")) {
+                if ("prod".equals(appEnvironment)) {
+                    SecurityContextHolder.clearContext();
+                }
+            }
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
             String email = jwtService.extractUsername(jwt);
-            if (email != null &&
-                    SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails =
-                        userDetailsService.loadUserByUsername(email);
-                if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails, null,
-                                    userDetails.getAuthorities());
-                    authToken.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+            if (email != null) {
+                org.springframework.security.core.Authentication currentAuth = SecurityContextHolder.getContext().getAuthentication();
+                if (currentAuth == null || !email.equals(currentAuth.getName())) {
+                    UserDetails userDetails =
+                            userDetailsService.loadUserByUsername(email);
+                    if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        userDetails, null,
+                                        userDetails.getAuthorities());
+                        authToken.setDetails(new org.springframework.security.web.authentication.WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             }
         } catch (Exception e) {

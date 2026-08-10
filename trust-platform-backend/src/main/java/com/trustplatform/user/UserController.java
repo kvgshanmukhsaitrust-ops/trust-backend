@@ -1,7 +1,9 @@
 package com.trustplatform.user;
 
-import com.trustplatform.donation.DonationRepository;
-import com.trustplatform.volunteer.VolunteerRepository;
+import com.trustplatform.donation.DonationService;
+import com.trustplatform.donation.dto.DonationResponse;
+import com.trustplatform.volunteer.VolunteerService;
+import com.trustplatform.volunteer.dto.VolunteerResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -10,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,8 +21,8 @@ import java.util.Map;
 public class UserController {
 
     private final UserRepository userRepository;
-    private final DonationRepository donationRepository;
-    private final VolunteerRepository volunteerRepository;
+    private final DonationService donationService;
+    private final VolunteerService volunteerService;
 
     // 1. User Count for Admin Dashboard stats
     @GetMapping("/count")
@@ -38,9 +41,8 @@ public class UserController {
 
         Map<String, Object> activityLog = new HashMap<>();
         
-        // Ensure findByUserId is defined in your repositories
-        activityLog.put("donations", donationRepository.findByUser_Id(user.getId()));
-        activityLog.put("eventApplications", volunteerRepository.findByUserId(user.getId()));
+        activityLog.put("donations", donationService.getUserDonations(user.getId()));
+        activityLog.put("eventApplications", volunteerService.getUserApplications(user.getId()));
 
         return ResponseEntity.ok(activityLog);
     }

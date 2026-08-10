@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 public class CreateDonationRequest {
 
     @NotNull
-    @DecimalMin(value = "1.0", message = "Donation amount must be at least 1")
+    @DecimalMin(value = "100.0", message = "Donation amount must be at least 100")
     private BigDecimal amount;
 
     @NotBlank
@@ -29,4 +29,6 @@ public class CreateDonationRequest {
     private String donorPan;
 
     private String donorAddress;
+
+    private String turnstileToken;
 }

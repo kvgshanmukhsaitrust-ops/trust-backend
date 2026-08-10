@@ -151,6 +151,8 @@ public class AuthService {
 
     private AuthenticationResponse buildResponse(
             String accessToken, RefreshToken refreshToken, User user) {
+        // refreshToken is @JsonIgnore in AuthenticationResponse — it will NOT appear in the JSON body.
+        // AuthController extracts it here to set the HttpOnly cookie.
         return AuthenticationResponse.builder()
                 .token(accessToken)
                 .refreshToken(refreshToken.getToken())

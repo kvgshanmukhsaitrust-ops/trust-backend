@@ -32,6 +32,7 @@ public class DonationController {
 
     private final DonationService donationService;
     private final PdfReceiptService pdfReceiptService;
+    private final com.trustplatform.security.TurnstileService turnstileService;
 
     // =========================================
     // CREATE DONATION
@@ -39,7 +40,20 @@ public class DonationController {
     @PostMapping
     public ResponseEntity<ApiSuccessResponse<DonationResponse>> createDonation(
             @Valid @RequestBody CreateDonationRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            jakarta.servlet.http.HttpServletRequest servletRequest) {
+
+        String remoteIp = servletRequest.getHeader("X-Forwarded-For");
+        if (remoteIp != null && !remoteIp.isBlank()) {
+            remoteIp = remoteIp.split(",")[0].trim();
+        } else {
+            remoteIp = servletRequest.getRemoteAddr();
+        }
+
+        boolean isCaptchaValid = turnstileService.verifyToken(request.getTurnstileToken(), remoteIp);
+        if (!isCaptchaValid) {
+            throw new com.trustplatform.exception.BadRequestException("Invalid CAPTCHA / bot protection token. Please refresh and try again.");
+        }
 
         User user = null;
         if (authentication != null && authentication.getPrincipal() instanceof User) {
@@ -128,16 +142,21 @@ public class DonationController {
     // GET DONATION BY ID
     // =========================================
     @GetMapping("/{id}")
-    public ResponseEntity<Donation> getDonation(@PathVariable Long id) {
-        return ResponseEntity.ok(donationService.getDonationById(id));
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DonationResponse> getDonation(@PathVariable Long id, Authentication authentication) {
+        Donation donation = donationService.getDonationById(id);
+        validateDonationAccess(donation, authentication);
+        return ResponseEntity.ok(donationService.mapToResponse(donation));
     }
 
     // =========================================
     // DOWNLOAD PDF RECEIPT
     // =========================================
     @GetMapping("/{id}/receipt")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<FileSystemResource> downloadReceipt(@PathVariable Long id, Authentication authentication) throws Exception {
         Donation donation = donationService.getDonationById(id);
+        validateDonationAccess(donation, authentication);
         
         // Strict PAN download audit governance
         if (donation.getDonorPan() != null && !donation.getDonorPan().isBlank()) {
@@ -159,5 +178,67 @@ public class DonationController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"receipt-" + id + ".pdf\"")
                 .body(resource);
+    }
+
+    // =========================================
+    // DOWNLOAD PDF RECEIPT BY UUID (Guest Access)
+    // =========================================
+    @GetMapping("/receipt/uuid/{uuid}")
+    public ResponseEntity<FileSystemResource> downloadReceiptByUuid(@PathVariable String uuid, Authentication authentication) throws Exception {
+        Donation donation = donationService.getDonationByReceiptUuid(uuid);
+        
+        // Strict PAN download audit governance
+        if (donation.getDonorPan() != null && !donation.getDonorPan().isBlank()) {
+            try {
+                String actor = authentication != null ? authentication.getName() : "anonymous";
+                donationService.mapToResponse(donation); // maps and triggers standard PAN audit log natively!
+            } catch (Exception e) {
+                // fallthrough
+            }
+        }
+
+        String pdfPath = pdfReceiptService.generateOrGetReceipt(donation.getId());
+        File pdfFile = new File(pdfPath);
+        if (!pdfFile.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+        FileSystemResource resource = new FileSystemResource(pdfFile);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"receipt-" + donation.getId() + ".pdf\"")
+                .body(resource);
+    }
+
+    private void validateDonationAccess(Donation donation, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new com.trustplatform.exception.UnauthorizedException("Authentication required to access this donation");
+        }
+        
+        // Admins and users with VIEW_ANALYTICS, MANAGE_SETTINGS, or MANAGE_APPLICATIONS permissions can access all donations
+        boolean isPrivileged = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) 
+                        || "VIEW_ANALYTICS".equals(a.getAuthority())
+                        || "MANAGE_SETTINGS".equals(a.getAuthority())
+                        || "MANAGE_APPLICATIONS".equals(a.getAuthority()));
+        
+        if (isPrivileged) {
+            return;
+        }
+
+        // If the donation is linked to a user, the current user's email must match the donation's user email
+        if (donation.getUser() != null) {
+            Object principal = authentication.getPrincipal();
+            String currentUsername = null;
+            if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+                currentUsername = ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+            } else if (principal instanceof com.trustplatform.user.User) {
+                currentUsername = ((com.trustplatform.user.User) principal).getEmail();
+            }
+            if (currentUsername != null && donation.getUser().getEmail().equals(currentUsername)) {
+                return;
+            }
+        }
+        
+        throw new org.springframework.security.access.AccessDeniedException("Access denied: You do not own this donation");
     }
 }

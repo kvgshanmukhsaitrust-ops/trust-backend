@@ -25,6 +25,9 @@ public class AuthController {
     @Value("${app.jwt.expiration:900000}")
     private long accessTokenExpirationMs;
 
+    @Value("${jwt.refresh-expiration:604800000}")
+    private long refreshExpirationMs;
+
     @Value("${app.cookie.secure:false}")
     private boolean secureCookie;
 
@@ -93,23 +96,40 @@ public class AuthController {
                 avatarUrl = "https://ui-avatars.com/api/?name=" + java.net.URLEncoder.encode(user.getFullName(), java.nio.charset.StandardCharsets.UTF_8) + "&background=B07A3F&color=fff";
             }
 
-            // Set cookie for automatic session validation
+            // Set HttpOnly cookies for secure session management
             setCookie(response, accessToken);
+            setRefreshCookie(response, refreshToken.getToken());
 
-            // Redirect with credentials and avatar URL
-            String redirectUrl = getRedirectBaseUrl() + "/login" +
-                    "?token=" + accessToken +
-                    "&refreshToken=" + refreshToken.getToken() +
-                    "&name=" + java.net.URLEncoder.encode(user.getFullName(), java.nio.charset.StandardCharsets.UTF_8) +
-                    "&email=" + user.getEmail() +
-                    "&role=" + user.getRole().name() +
-                    "&avatar=" + java.net.URLEncoder.encode(avatarUrl, java.nio.charset.StandardCharsets.UTF_8);
+            // Redirect indicating OAuth success without token exposure in the URL
+            String redirectUrl = getRedirectBaseUrl() + "/login?oauth_success=true";
 
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
             log.error("Error during Google OAuth authentication redirect processing", e);
             response.sendRedirect(getRedirectBaseUrl() + "/login?error=oauth_failed");
         }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<com.trustplatform.common.api.ApiSuccessResponse<AuthenticationResponse.UserDto>> getMe(
+            org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new com.trustplatform.exception.UnauthorizedException("Not authenticated");
+        }
+        com.trustplatform.user.User user = (com.trustplatform.user.User) authentication.getPrincipal();
+        AuthenticationResponse.UserDto userDto = AuthenticationResponse.UserDto.builder()
+                .name(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .build();
+        return ResponseEntity.ok(
+                com.trustplatform.common.api.ApiSuccessResponse.<AuthenticationResponse.UserDto>builder()
+                        .timestamp(java.time.LocalDateTime.now())
+                        .status(200)
+                        .message("Session retrieved successfully")
+                        .data(userDto)
+                        .build()
+        );
     }
 
 
@@ -119,6 +139,7 @@ public class AuthController {
             HttpServletResponse response) {
         AuthenticationResponse auth = authService.register(request);
         if (auth.getToken() != null) setCookie(response, auth.getToken());
+        if (auth.getRefreshToken() != null) setRefreshCookie(response, auth.getRefreshToken());
         return ResponseEntity.ok(auth);
     }
 
@@ -128,26 +149,47 @@ public class AuthController {
             HttpServletResponse response) {
         AuthenticationResponse auth = authService.login(request);
         if (auth.getToken() != null) setCookie(response, auth.getToken());
+        if (auth.getRefreshToken() != null) setRefreshCookie(response, auth.getRefreshToken());
         return ResponseEntity.ok(auth);
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthenticationResponse> refresh(
-            @RequestBody RefreshTokenRequest request,
+            @RequestBody(required = false) RefreshTokenRequest request,
+            @CookieValue(name = "refresh_token", required = false) String refreshTokenFromCookie,
             HttpServletResponse response) {
-        AuthenticationResponse auth = authService.refreshToken(request);
+        
+        String token = (request != null && request.getRefreshToken() != null) 
+                ? request.getRefreshToken() 
+                : refreshTokenFromCookie;
+
+        if (token == null || token.trim().isEmpty()) {
+            throw new com.trustplatform.exception.BadRequestException("Missing refresh token");
+        }
+
+        RefreshTokenRequest refreshRequest = new RefreshTokenRequest();
+        refreshRequest.setRefreshToken(token);
+        AuthenticationResponse auth = authService.refreshToken(refreshRequest);
         if (auth.getToken() != null) setCookie(response, auth.getToken());
+        if (auth.getRefreshToken() != null) setRefreshCookie(response, auth.getRefreshToken());
         return ResponseEntity.ok(auth);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(
             @RequestBody(required = false) RefreshTokenRequest request,
+            @CookieValue(name = "refresh_token", required = false) String refreshTokenFromCookie,
             HttpServletResponse response) {
-        if (request != null && request.getRefreshToken() != null) {
-            authService.logout(request.getRefreshToken());
+        
+        String token = (request != null && request.getRefreshToken() != null) 
+                ? request.getRefreshToken() 
+                : refreshTokenFromCookie;
+
+        if (token != null && !token.trim().isEmpty()) {
+            authService.logout(token);
         }
         clearCookie(response);
+        clearRefreshCookie(response);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
@@ -160,9 +202,25 @@ public class AuthController {
         response.addHeader("Set-Cookie", cookie);
     }
 
+    private void setRefreshCookie(HttpServletResponse response, String token) {
+        String cookie = String.format(
+            "refresh_token=%s; Max-Age=%d; Path=/api; HttpOnly; %s SameSite=Strict",
+            token,
+            (int)(refreshExpirationMs / 1000),
+            secureCookie ? "Secure;" : "");
+        response.addHeader("Set-Cookie", cookie);
+    }
+
     private void clearCookie(HttpServletResponse response) {
         String cookie = String.format(
             "access_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Strict",
+            secureCookie ? "Secure;" : "");
+        response.addHeader("Set-Cookie", cookie);
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        String cookie = String.format(
+            "refresh_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Strict",
             secureCookie ? "Secure;" : "");
         response.addHeader("Set-Cookie", cookie);
     }

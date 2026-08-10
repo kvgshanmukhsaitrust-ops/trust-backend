@@ -2,9 +2,9 @@ package com.trustplatform.admin;
 
 import com.trustplatform.admin.dto.UpdateUserRoleRequest;
 import com.trustplatform.common.api.ApiSuccessResponse;
-import com.trustplatform.donation.Donation;
+import com.trustplatform.donation.dto.DonationResponse;
 import com.trustplatform.user.User;
-import com.trustplatform.volunteer.VolunteerApplication;
+import com.trustplatform.volunteer.dto.VolunteerResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -65,10 +65,10 @@ public class AdminController {
     // ===============================
     @GetMapping("/volunteers")
     @PreAuthorize("hasAuthority('MANAGE_MEMBERS')")
-    public ResponseEntity<ApiSuccessResponse<List<VolunteerApplication>>> getVolunteers() {
+    public ResponseEntity<ApiSuccessResponse<List<VolunteerResponse>>> getVolunteers() {
 
         return ResponseEntity.ok(
-                ApiSuccessResponse.<List<VolunteerApplication>>builder()
+                ApiSuccessResponse.<List<VolunteerResponse>>builder()
                         .timestamp(LocalDateTime.now())
                         .status(200)
                         .message("Volunteers fetched successfully")
@@ -82,10 +82,10 @@ public class AdminController {
     // ===============================
     @GetMapping("/donations")
     @PreAuthorize("hasAuthority('VIEW_ANALYTICS')")
-    public ResponseEntity<ApiSuccessResponse<List<Donation>>> getDonations() {
+    public ResponseEntity<ApiSuccessResponse<List<DonationResponse>>> getDonations() {
 
         return ResponseEntity.ok(
-                ApiSuccessResponse.<List<Donation>>builder()
+                ApiSuccessResponse.<List<DonationResponse>>builder()
                         .timestamp(LocalDateTime.now())
                         .status(200)
                         .message("Donations fetched successfully")

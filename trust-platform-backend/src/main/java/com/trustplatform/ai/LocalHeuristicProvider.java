@@ -123,10 +123,17 @@ public class LocalHeuristicProvider implements AiProvider {
     public String matchVolunteer(Map<String, Object> profile, Map<String, Object> event) {
         log.info("[LocalHeuristicProvider] Formulating smart match suggestion...");
 
-        String skills = (String) profile.getOrDefault("skills", "");
-        String experience = (String) profile.getOrDefault("experience", "");
-        String eventTitle = (String) event.getOrDefault("title", "Initiative Campaign");
-        String eventSkills = (String) event.getOrDefault("skillsNeeded", "");
+        Object skillsObj = profile.get("skills");
+        String skills = skillsObj != null ? skillsObj.toString() : "";
+
+        Object expObj = profile.get("experience");
+        String experience = expObj != null ? expObj.toString() : "";
+
+        Object titleObj = event.get("title");
+        String eventTitle = titleObj != null ? titleObj.toString() : "Initiative Campaign";
+
+        Object eventSkillsObj = event.get("skillsNeeded");
+        String eventSkills = eventSkillsObj != null ? eventSkillsObj.toString() : "";
 
         int matchScore = 65; // base score
         StringBuilder matchReasons = new StringBuilder();

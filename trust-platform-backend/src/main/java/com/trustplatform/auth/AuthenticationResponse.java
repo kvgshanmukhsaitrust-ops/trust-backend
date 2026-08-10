@@ -11,8 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthenticationResponse {
     
-    private String token;          // The Access Token (JWT)
-    private String refreshToken;   // ADD THIS FIELD TO FIX THE BUILDER ERROR
+    private String token;          // The Access Token (JWT) — stored in localStorage by frontend
+
+    @com.fasterxml.jackson.annotation.JsonIgnore  // Refresh token must NOT appear in the JSON body
+    private String refreshToken;   // Internal only — used by AuthController to set the HttpOnly cookie
     private UserDto user;          // Nested object for frontend AppContext
 
     @Data

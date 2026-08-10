@@ -44,6 +44,9 @@ public class PaymentService {
     private final UserRepository userRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private PaymentSimulator paymentSimulator;
+
     @Value("${razorpay.key-id:dummy}")
     private String keyId;
 
@@ -65,6 +68,9 @@ public class PaymentService {
         boolean isSandbox = "dev_razorpay_key".equals(keyId) || "dummy".equals(keyId) || keyId == null || keyId.trim().isEmpty();
         // Sandbox checkout simulation mode check
         if (isSandbox) {
+            if (paymentSimulator == null) {
+                throw new com.trustplatform.exception.BadRequestException("Sandbox checkout simulation is strictly disabled in production.");
+            }
             orderId = "order_mock_" + UUID.randomUUID().toString().substring(0, 8);
             log.info("[PaymentService] Simulated order created for Sandbox checkout: {}", orderId);
         } else {
@@ -117,6 +123,9 @@ public class PaymentService {
         boolean isMock = request.getRazorpayOrderId() != null && request.getRazorpayOrderId().startsWith("order_mock_");
 
         if (isMock) {
+            if (paymentSimulator == null) {
+                throw new com.trustplatform.exception.BadRequestException("Sandbox payment verification is strictly disabled in production.");
+            }
             log.info("[PaymentService] Verifying mock order sandbox transaction: {}", request.getRazorpayOrderId());
             donation.setPaymentMethod("Card (Sandbox)");
         } else {
@@ -391,6 +400,9 @@ public class PaymentService {
                 throw new RuntimeException("Refund gateway call failed: " + e.getMessage());
             }
         } else {
+            if (paymentSimulator == null) {
+                throw new com.trustplatform.exception.BadRequestException("Sandbox refund simulation is strictly disabled in production.");
+            }
             log.info("[PaymentService] Sandbox mock refund processed for donationId={}", donationId);
         }
 
@@ -450,5 +462,11 @@ public class PaymentService {
                 throw new org.springframework.security.access.AccessDeniedException("Access denied: You do not own this donation");
             }
         }
+    }
+
+    public boolean isGuestDonation(Long donationId) {
+        return donationRepository.findById(donationId)
+                .map(d -> d.getUser() == null)
+                .orElse(false);
     }
 }

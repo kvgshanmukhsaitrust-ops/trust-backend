@@ -40,6 +40,13 @@ public class AdminPageContentController {
         return ResponseEntity.ok(map);
     }
 
+    private static final java.util.Set<String> JSON_KEYS = java.util.Set.of(
+            "HISTORY_MILESTONES",
+            "VISION_PILLARS",
+            "VISION_IMPACTS",
+            "IMPACT_SHOWCASE_CONFIG"
+    );
+
     @PutMapping("/{key}")
     @AuditAction("UPSERT_PAGE_CONTENT")
     public ResponseEntity<String> upsertPageContent(
@@ -50,7 +57,18 @@ public class AdminPageContentController {
         if (cleaned.startsWith("\"") && cleaned.endsWith("\"") && cleaned.length() >= 2) {
             cleaned = cleaned.substring(1, cleaned.length() - 1);
         }
-        final String finalValue = com.trustplatform.common.HtmlSanitizer.sanitize(cleaned);
+        
+        final String finalValue;
+        if (JSON_KEYS.contains(key)) {
+            try {
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(cleaned);
+                finalValue = cleaned;
+            } catch (Exception e) {
+                throw new com.trustplatform.exception.BadRequestException("Invalid JSON format for key: " + key);
+            }
+        } else {
+            finalValue = com.trustplatform.common.HtmlSanitizer.sanitize(cleaned);
+        }
         
         PageContent content = pageContentRepository.findByContentKey(key)
                 .orElseGet(() -> {

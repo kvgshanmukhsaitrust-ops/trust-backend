@@ -62,7 +62,8 @@ public class Donation extends BaseAuditableEntity {
     private String errorDetails;
 
     // 🔹 PAN Card (India 80G requirement)
-    @Column(length = 50)
+    @Convert(converter = com.trustplatform.common.crypto.PanEncryptionConverter.class)
+    @Column(length = 255)
     private String donorPan;
 
     // 🔹 Physical Address (India 80G requirement)

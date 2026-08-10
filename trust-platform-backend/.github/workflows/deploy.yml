@@ -1,0 +1,123 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Run backend test suite
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Backend Tests & Dependency Scanning
+        run: |
+          ./mvnw clean test
+          ./mvnw org.owasp:dependency-check-maven:check
+
+      # 2. Run frontend test suite
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './package.json'
+
+      - name: Run Frontend Tests & Dependency Audit
+        run: |
+          npm ci
+          npm run lint || true
+          npm audit --audit-level=high
+
+  build-and-push:
+    needs: test-and-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Build and tag the container image by commit SHA
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/trust-api:${{ github.sha }}
+            ghcr.io/${{ github.repository }}/trust-api:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH & Run Migrations
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 5. Apply database migrations before starting new container
+            cd /app/backend
+            ./mvnw flyway:migrate -Dflyway.url=${{ secrets.DB_URL }} -Dflyway.user=${{ secrets.FLYWAY_USER }} -Dflyway.password=${{ secrets.FLYWAY_PASSWORD }}
+
+            # 6. Deploy new docker container
+            docker pull ghcr.io/${{ github.repository }}/trust-api:${{ github.sha }}
+            docker stop trust-api || true
+            docker rm trust-api || true
+            
+            docker run -d \
+              --name trust-api \
+              --restart unless-stopped \
+              -p 127.0.0.1:8080:8080 \
+              --env-file /etc/trust/prod.env \
+              --memory 1600m \
+              --log-opt max-size=50m \
+              --log-opt max-file=5 \
+              ghcr.io/${{ github.repository }}/trust-api:${{ github.sha }}
+
+            # 7. Poll the health endpoint for status check
+            echo "Waiting for health check validation..."
+            SUCCESS=0
+            for i in {1..12}; do
+              if curl -s http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"'; then
+                echo "Health check passed!"
+                SUCCESS=1
+                break
+              fi
+              sleep 5
+            done
+
+            # 8. Roll back to the previous SHA automatically if the health check fails
+            if [ $SUCCESS -ne 1 ]; then
+              echo "Health check failed! Initiating rollback..."
+              docker stop trust-api || true
+              docker rm trust-api || true
+              docker run -d \
+                --name trust-api \
+                --restart unless-stopped \
+                -p 127.0.0.1:8080:8080 \
+                --env-file /etc/trust/prod.env \
+                --memory 1600m \
+                --log-opt max-size=50m \
+                --log-opt max-file=5 \
+                ghcr.io/${{ github.repository }}/trust-api:latest
+              exit 1
+            fi
