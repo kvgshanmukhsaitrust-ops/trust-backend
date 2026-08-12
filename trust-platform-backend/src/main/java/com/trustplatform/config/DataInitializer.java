@@ -390,10 +390,10 @@ public class DataInitializer implements CommandLineRunner {
         if (trustMemberRepository.count() == 0) {
             logger.info("Seeding key trust operational members.");
             trustMemberRepository.save(com.trustplatform.member.TrustMember.builder()
-                    .name("Dr. K.V.G. Shanmuka Sai")
+                    .name("K.V.G. Shanmuka Sai")
                     .role("Founder & Chairman")
                     .tagline("Dedicated to transforming lives through selfless service and community outreach.")
-                    .bio("Dr. K.V.G. Shanmuka Sai is an eminent visionary and philanthropist with over 20 years of active social work experience, guiding education and environmental projects.")
+                    .bio("K.V.G. Shanmuka Sai is an eminent visionary and philanthropist with over 20 years of active social work experience, guiding education and environmental projects.")
                     .imageUrl("/hero-portrait.png")
                     .twitterUrl("https://twitter.com")
                     .linkedinUrl("https://linkedin.com")

@@ -82,17 +82,17 @@ public class PdfReceiptService {
             Font statusFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, success);
 
             // Header
-            Paragraph orgName = new Paragraph("K.V.G SHANMUKA SAI CHARITABLE TRUST", orgFont);
+            Paragraph orgName = new Paragraph("K.V.G. SHANMUKA SAI CHARITABLE TRUST", orgFont);
             orgName.setAlignment(Element.ALIGN_LEFT);
             document.add(orgName);
 
-            document.add(new Paragraph("Nagpur, Maharashtra, India  \u2022  Govt Exemption Code: NGO-TRUST-4122", subFont));
-            document.add(new Paragraph("CIN: U85300MH2020NPL12345  \u2022  80G Registration Active", subFont));
+            document.add(new Paragraph("49a, Harischandrapuram, Thullur mandal, Guntur district, Andhra pradesh, India", subFont));
+            document.add(new Paragraph("Charitable Tax Registration (12A/80G): Pending Approval", subFont));
             document.add(new Chunk(new LineSeparator(1f, 100f, trustGold, Element.ALIGN_CENTER, -2)));
             document.add(Chunk.NEWLINE);
 
             // Title
-            Paragraph title = new Paragraph("OFFICIAL DONATION RECEIPT - 80G TAX EXEMPTION CERTIFICATE",
+            Paragraph title = new Paragraph("OFFICIAL DONATION RECEIPT",
                     FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, navyDark));
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
@@ -122,7 +122,7 @@ public class PdfReceiptService {
             addLabelValue(document, labelFont, valueFont, "Email", donation.getDonorEmail());
             if (donation.getDonorPan() != null) {
                 String maskedPan = "XXXXX" + donation.getDonorPan().substring(5);
-                addLabelValue(document, labelFont, valueFont, "PAN Card (80G)", maskedPan);
+                addLabelValue(document, labelFont, valueFont, "PAN Card", maskedPan);
             }
             if (donation.getDonorAddress() != null) {
                 addLabelValue(document, labelFont, valueFont, "Address", donation.getDonorAddress());
@@ -149,14 +149,14 @@ public class PdfReceiptService {
             document.add(new Chunk(new LineSeparator(1f, 100f, trustGold, Element.ALIGN_CENTER, -2)));
             document.add(Chunk.NEWLINE);
 
-            // 80G Notice
+            // Exemption Notice
             Font noticeFont = FontFactory.getFont(FontFactory.HELVETICA, 8, slate);
             Font noticeBold = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, navyDark);
-            document.add(new Paragraph("TAX EXEMPTION NOTICE UNDER SECTION 80G OF THE INCOME TAX ACT, 1961", noticeBold));
+            document.add(new Paragraph("DONATION RECEIPT STATUS: ACKNOWLEDGEMENT ONLY", noticeBold));
             document.add(new Paragraph(
-                "This receipt serves as official legal proof of donation to K.V.G Shanmuka Sai Charitable Trust, " +
-                "a registered non-profit organization under the Income Tax Act. 50% of this contribution is eligible " +
-                "for a tax deduction under Section 80G. Please retain this certificate for your income tax filings.", noticeFont));
+                "This receipt serves as a transaction acknowledgement of your donation to K.V.G. Shanmuka Sai Charitable Trust. " +
+                "Please note: The trust has filed applications for the 12A and 80G tax exemption certificates, which are currently " +
+                "pending approval. At present, contributions do not qualify for tax deductions under Section 80G.", noticeFont));
 
             document.add(Chunk.NEWLINE);
 
