@@ -195,7 +195,7 @@ public class AuthController {
 
     private void setCookie(HttpServletResponse response, String token) {
         String cookie = String.format(
-            "access_token=%s; Max-Age=%d; Path=/api; HttpOnly; %s SameSite=Strict",
+            "access_token=%s; Max-Age=%d; Path=/api; HttpOnly; %s SameSite=Lax",
             token,
             (int)(accessTokenExpirationMs / 1000),
             secureCookie ? "Secure;" : "");
@@ -204,7 +204,7 @@ public class AuthController {
 
     private void setRefreshCookie(HttpServletResponse response, String token) {
         String cookie = String.format(
-            "refresh_token=%s; Max-Age=%d; Path=/api; HttpOnly; %s SameSite=Strict",
+            "refresh_token=%s; Max-Age=%d; Path=/api; HttpOnly; %s SameSite=Lax",
             token,
             (int)(refreshExpirationMs / 1000),
             secureCookie ? "Secure;" : "");
@@ -213,14 +213,14 @@ public class AuthController {
 
     private void clearCookie(HttpServletResponse response) {
         String cookie = String.format(
-            "access_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Strict",
+            "access_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Lax",
             secureCookie ? "Secure;" : "");
         response.addHeader("Set-Cookie", cookie);
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
         String cookie = String.format(
-            "refresh_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Strict",
+            "refresh_token=; Max-Age=0; Path=/api; HttpOnly; %s SameSite=Lax",
             secureCookie ? "Secure;" : "");
         response.addHeader("Set-Cookie", cookie);
     }
