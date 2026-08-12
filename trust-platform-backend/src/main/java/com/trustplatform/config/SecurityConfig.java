@@ -33,7 +33,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:https://trust-frontend-delta.vercel.app}")
+    @org.springframework.beans.factory.annotation.Value("${app.frontend.url:https://shanmukasaitrust.org}")
     private String frontendUrl;
 
     @Bean

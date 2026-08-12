@@ -43,7 +43,7 @@ public class AuthController {
             String backendUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder
                     .fromCurrentContextPath().build().toUriString();
             if (backendUrl != null && (backendUrl.contains("railway.app") || !backendUrl.contains("localhost"))) {
-                return "https://trust-frontend-delta.vercel.app";
+                return "https://shanmukasaitrust.org";
             }
         } catch (Exception e) {
             // Fallback in non-web contexts
