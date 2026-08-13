@@ -1,6 +1,7 @@
 package com.trustplatform.auth;
 
 import com.trustplatform.email.EmailService;
+import com.trustplatform.email.EmailTemplateBuilder;
 import com.trustplatform.exception.BadRequestException;
 import com.trustplatform.user.User;
 import com.trustplatform.user.UserRepository;
@@ -19,6 +20,7 @@ public class EmailVerificationService {
     private final VerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final EmailTemplateBuilder emailTemplateBuilder;
 
     @Value("${app.verification.expiration}")
     private Long verificationExpirationMs;
@@ -51,16 +53,12 @@ public class EmailVerificationService {
         System.out.println(verificationLink);
         System.out.println("==================================================");
 
-        String message =
-                "Hi " + user.getFullName() + ",\n\n" +
-                "Please verify your email by clicking the link below:\n\n" +
-                verificationLink +
-                "\n\nThis link expires in 24 hours.";
+        String message = emailTemplateBuilder.buildVerificationEmail(user.getFullName(), verificationLink);
 
         try {
             emailService.sendEmail(
                     user.getEmail(),
-                    "Verify Your Email - Trust Platform",
+                    "Verify Your Email - KVGS Sai Charitable Trust",
                     message
             );
         } catch (Exception e) {

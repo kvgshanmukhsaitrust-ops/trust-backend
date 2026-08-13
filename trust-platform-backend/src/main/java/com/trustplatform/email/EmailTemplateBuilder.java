@@ -215,27 +215,109 @@ public class EmailTemplateBuilder {
     }
 
     // ===============================
-    // WELCOME EMAIL
+    // WELCOME EMAIL (local registration)
     // ===============================
     public String buildWelcomeEmail(String name) {
+        String base = getFrontendUrl();
         String content = """
-                <p>Welcome to KVGS Sai Charitable Trust!</p>
-                <p>We are delighted to have you join our community. Our mission is to empower lives, support communities, and create lasting change through compassion, education, and service.</p>
-                <p>Your account is now active. You can log in to your dashboard to explore upcoming initiatives, track your donations, or apply to volunteer.</p>
-                """;
-        return buildTemplate(name, content, "Go to Login", getFrontendUrl() + "/login");
+                <p style="font-size:16px; color:#1a1a2e; font-weight:600; margin-bottom:6px;">You're officially part of something bigger. 🙏</p>
+                <p>We are thrilled to welcome you to the <strong>KVGS Sai Charitable Trust</strong> family. Together we work toward empowering lives through education, clean water, community health, and compassionate service.</p>
+                <p>Your account is now active and ready. Here's what you can do:</p>
+
+                <table style="width:100%%; border-collapse:separate; border-spacing:0 10px; margin: 18px 0;">
+                  <tr>
+                    <td style="background:#f7f9fc; border-left:4px solid #B07A3F; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top; width:30px;">
+                      <span style="font-size:22px;">📅</span>
+                    </td>
+                    <td style="background:#f7f9fc; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <strong style="color:#1a1a2e;">Explore Events</strong><br>
+                      <span style="color:#666; font-size:14px;">Join upcoming drives, community programs, and volunteering initiatives near you.</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#f7f9fc; border-left:4px solid #B07A3F; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <span style="font-size:22px;">❤️</span>
+                    </td>
+                    <td style="background:#f7f9fc; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <strong style="color:#1a1a2e;">Make a Donation</strong><br>
+                      <span style="color:#666; font-size:14px;">Every rupee you contribute directly funds education, water projects, and community support.</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#f7f9fc; border-left:4px solid #B07A3F; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <span style="font-size:22px;">🤝</span>
+                    </td>
+                    <td style="background:#f7f9fc; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <strong style="color:#1a1a2e;">Volunteer With Us</strong><br>
+                      <span style="color:#666; font-size:14px;">Apply as a volunteer and be on the ground making a real difference in people's lives.</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="color:#888; font-size:13px;">If you have any questions, simply reply to this email or reach us at <a href="mailto:kvgshanmukhsaitrust@gmail.com" style="color:#B07A3F;">kvgshanmukhsaitrust@gmail.com</a>.</p>
+                """.formatted();
+        return buildTemplate(name, content, "Go to My Dashboard", base + "/dashboard");
     }
 
     // ===============================
     // GOOGLE WELCOME EMAIL
     // ===============================
     public String buildGoogleWelcomeEmail(String name) {
+        String base = getFrontendUrl();
         String content = """
-                <p>Welcome to KVGS Sai Charitable Trust!</p>
-                <p>Thank you for registering an account using Google sign-in. We are excited to have you as part of our mission to create a positive impact through education, clean water, and community support.</p>
-                <p>You can now sign in instantly at any time using your Google account to manage your profile and view updates.</p>
+                <p style="font-size:16px; color:#1a1a2e; font-weight:600; margin-bottom:6px;">You're officially part of something bigger. 🙏</p>
+                <p>Thank you for joining <strong>KVGS Sai Charitable Trust</strong> with your Google account. We are excited to have you as part of our mission to create a positive impact through education, clean water, and community support.</p>
+                <p>You can sign in anytime using your Google account — no password needed. Here's what awaits you:</p>
+
+                <table style="width:100%%; border-collapse:separate; border-spacing:0 10px; margin: 18px 0;">
+                  <tr>
+                    <td style="background:#f7f9fc; border-left:4px solid #B07A3F; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top; width:30px;">
+                      <span style="font-size:22px;">📅</span>
+                    </td>
+                    <td style="background:#f7f9fc; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <strong style="color:#1a1a2e;">Explore Events</strong><br>
+                      <span style="color:#666; font-size:14px;">Join upcoming drives, community programs, and volunteering initiatives near you.</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#f7f9fc; border-left:4px solid #B07A3F; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <span style="font-size:22px;">❤️</span>
+                    </td>
+                    <td style="background:#f7f9fc; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <strong style="color:#1a1a2e;">Make a Donation</strong><br>
+                      <span style="color:#666; font-size:14px;">Every rupee you contribute directly funds education, water projects, and community support.</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#f7f9fc; border-left:4px solid #B07A3F; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <span style="font-size:22px;">🤝</span>
+                    </td>
+                    <td style="background:#f7f9fc; border-radius:0 8px 8px 0; padding:14px 16px; vertical-align:top;">
+                      <strong style="color:#1a1a2e;">Volunteer With Us</strong><br>
+                      <span style="color:#666; font-size:14px;">Apply as a volunteer and be on the ground making a real difference in people's lives.</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="color:#888; font-size:13px;">If you have any questions, simply reply to this email or reach us at <a href="mailto:kvgshanmukhsaitrust@gmail.com" style="color:#B07A3F;">kvgshanmukhsaitrust@gmail.com</a>.</p>
+                """.formatted();
+        return buildTemplate(name, content, "Go to My Dashboard", base + "/dashboard");
+    }
+
+    // ===============================
+    // EMAIL VERIFICATION (HTML)
+    // ===============================
+    public String buildVerificationEmail(String name, String verificationLink) {
+        String content = """
+                <p>Thanks for creating your account with <strong>KVGS Sai Charitable Trust</strong>. You're almost there!</p>
+                <p>Please verify your email address by clicking the button below. This link will expire in <strong>24 hours</strong>.</p>
+                <div style="background:#fff8f0; border:1px solid #f0dfc0; border-radius:8px; padding:14px 16px; margin:20px 0; font-size:13px; color:#888;">
+                  <strong style="color:#1a1a2e;">Why verify?</strong><br>
+                  Email verification ensures the security of your account and keeps your donation receipts and updates safe.
+                </div>
+                <p style="color:#888; font-size:13px;">If you did not create this account, you can safely ignore this email — no action is needed.</p>
                 """;
-        return buildTemplate(name, content, "Go to Login", getFrontendUrl() + "/login");
+        return buildTemplate(name, content, "Verify My Email", verificationLink);
     }
 
     // ===============================
