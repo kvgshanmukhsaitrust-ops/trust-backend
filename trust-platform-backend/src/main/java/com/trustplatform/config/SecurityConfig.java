@@ -163,6 +163,7 @@ public class SecurityConfig {
         
         java.util.List<String> patterns = new java.util.ArrayList<>();
         patterns.add("https://trust-frontend-delta.vercel.app");
+        patterns.add("https://trust-frontend-git-main-rtesting.vercel.app");
         patterns.add("https://shanmukasaitrust.org");
         patterns.add("http://localhost:5173");
         patterns.add("http://localhost:3000");

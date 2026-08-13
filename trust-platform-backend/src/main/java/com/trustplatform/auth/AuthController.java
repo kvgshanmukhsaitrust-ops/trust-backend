@@ -96,12 +96,24 @@ public class AuthController {
                 avatarUrl = "https://ui-avatars.com/api/?name=" + java.net.URLEncoder.encode(user.getFullName(), java.nio.charset.StandardCharsets.UTF_8) + "&background=B07A3F&color=fff";
             }
 
-            // Set HttpOnly cookies for secure session management
+            // Also set HttpOnly cookies as a fallback for same-origin setups
             setCookie(response, accessToken);
             setRefreshCookie(response, refreshToken.getToken());
 
-            // Redirect indicating OAuth success without token exposure in the URL
-            String redirectUrl = getRedirectBaseUrl() + "/login?oauth_success=true";
+            // Pass token and user info directly in the redirect URL so the frontend
+            // can store them without needing a cross-origin /auth/me call.
+            // SameSite=Lax cookies are blocked on cross-origin XHR from Vercel -> backend.
+            String encodedToken = java.net.URLEncoder.encode(accessToken, java.nio.charset.StandardCharsets.UTF_8);
+            String encodedName  = java.net.URLEncoder.encode(user.getFullName() != null ? user.getFullName() : "", java.nio.charset.StandardCharsets.UTF_8);
+            String encodedEmail = java.net.URLEncoder.encode(user.getEmail() != null ? user.getEmail() : "", java.nio.charset.StandardCharsets.UTF_8);
+            String encodedRole  = java.net.URLEncoder.encode(user.getRole().name(), java.nio.charset.StandardCharsets.UTF_8);
+
+            String redirectUrl = getRedirectBaseUrl()
+                    + "/login?oauth_success=true"
+                    + "&token=" + encodedToken
+                    + "&name=" + encodedName
+                    + "&email=" + encodedEmail
+                    + "&role=" + encodedRole;
 
             response.sendRedirect(redirectUrl);
         } catch (Exception e) {
