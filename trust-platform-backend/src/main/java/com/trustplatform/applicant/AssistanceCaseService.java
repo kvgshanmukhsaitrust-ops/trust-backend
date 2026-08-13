@@ -1,6 +1,5 @@
 package com.trustplatform.applicant;
 
-import com.trustplatform.ai.AiService;
 import com.trustplatform.common.HtmlSanitizer;
 import com.trustplatform.email.EmailService;
 import com.trustplatform.exception.ResourceNotFoundException;
@@ -31,7 +30,6 @@ public class AssistanceCaseService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final com.trustplatform.email.EmailTemplateBuilder emailTemplateBuilder;
-    private final AiService aiService;
 
     @Transactional
     public AssistanceCase createCase(User applicant, com.trustplatform.applicant.dto.CaseRequest req) {
@@ -110,14 +108,6 @@ public class AssistanceCaseService {
                 log.error("Failed to send case confirmation email to {}", applicant.getEmail(), e);
             }
 
-            // Generate AI Summary
-            try {
-                String aiSummary = aiService.summarizeCase(req.getTitle(), req.getDescription(), req.getCategory().name());
-                savedCase.setAiSummary(aiSummary);
-                caseRepository.save(savedCase);
-            } catch (Exception e) {
-                log.error("Failed to generate AI summary for case {}", caseNumber, e);
-            }
         }
 
         return savedCase;
