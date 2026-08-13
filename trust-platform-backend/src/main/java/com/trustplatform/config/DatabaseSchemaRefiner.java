@@ -38,5 +38,14 @@ public class DatabaseSchemaRefiner {
         } catch (Exception e) {
             log.warn("[DatabaseSchemaRefiner] Failed to execute donor_pan alter query: {}.", e.getMessage());
         }
+
+        try {
+            log.info("[DatabaseSchemaRefiner] Altering impact_showcase_cards.base_image and reveal_image to VARCHAR(1000) to support long Cloudinary paths...");
+            jdbcTemplate.execute("ALTER TABLE impact_showcase_cards MODIFY COLUMN base_image VARCHAR(1000);");
+            jdbcTemplate.execute("ALTER TABLE impact_showcase_cards MODIFY COLUMN reveal_image VARCHAR(1000);");
+            log.info("[DatabaseSchemaRefiner] Alter on base_image and reveal_image successfully executed!");
+        } catch (Exception e) {
+            log.warn("[DatabaseSchemaRefiner] Failed to execute image column alter query: {}.", e.getMessage());
+        }
     }
 }

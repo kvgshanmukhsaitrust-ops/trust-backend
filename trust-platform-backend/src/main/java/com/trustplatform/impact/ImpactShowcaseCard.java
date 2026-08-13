@@ -24,7 +24,10 @@ public class ImpactShowcaseCard {
     private int displayOrder;
 
     private String subtitle;
+    @Column(length = 1000)
     private String baseImage;
+
+    @Column(length = 1000)
     private String revealImage;
     private String statLabel;
     private String tags; // Comma-separated list of tags
