@@ -28,15 +28,25 @@ public class PublicSettingController {
         return ResponseEntity.ok(url != null ? url : "");
     }
 
+    /** Only CMS keys with this prefix are ever exposed publicly (SECURITY: allow-list, not "everything"). */
+    private static final String PUBLIC_KEY_PREFIX = "HOME_";
+    private static final java.util.regex.Pattern SENSITIVE =
+            java.util.regex.Pattern.compile("SECRET|PASSWORD|TOKEN|PRIVATE|CREDENTIAL|API_?KEY", java.util.regex.Pattern.CASE_INSENSITIVE);
+
     /**
-     * Returns ALL public settings as a key-value map.
+     * Returns the PUBLIC (homepage CMS) settings as a key-value map.
+     * Anything outside the allow-list, or that looks like a credential, is never returned.
      * Never throws — returns an empty map if no settings exist.
      */
     @GetMapping("/all")
     public ResponseEntity<Map<String, String>> getAllSettings() {
         List<SystemSetting> all = settingRepository.findAll();
         Map<String, String> map = new HashMap<>();
-        all.forEach(s -> map.put(s.getSettingKey(), s.getSettingValue()));
+        all.stream()
+                .filter(s -> s.getSettingKey() != null
+                        && s.getSettingKey().startsWith(PUBLIC_KEY_PREFIX)
+                        && !SENSITIVE.matcher(s.getSettingKey()).find())
+                .forEach(s -> map.put(s.getSettingKey(), s.getSettingValue()));
         return ResponseEntity.ok(map);
     }
 }

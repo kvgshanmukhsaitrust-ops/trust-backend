@@ -56,23 +56,17 @@ public class RazorpayWebhookController {
                 return ResponseEntity.ok("Duplicate event - already processed");
             }
 
-            // Save processed event ID to secure ledger database
-            processedWebhookEventRepository.save(new ProcessedWebhookEvent(eventId));
-
             String event = root.get("event").asText();
 
-            // Process payment.captured events only
-            if ("payment.captured".equals(event)) {
+            // payment.captured (and order.paid, which carries the same payment) confirm the money
+            if ("payment.captured".equals(event) || "order.paid".equals(event)) {
                 JsonNode paymentEntity = root.get("payload").get("payment").get("entity");
-                
-                String payerEmail = paymentEntity.has("email") && !paymentEntity.get("email").isNull() 
-                        ? paymentEntity.get("email").asText() 
+
+                String payerEmail = paymentEntity.has("email") && !paymentEntity.get("email").isNull()
+                        ? paymentEntity.get("email").asText()
                         : null;
-                
-                if (payerEmail == null || payerEmail.trim().isEmpty()) {
-                    log.warn("[RazorpayWebhookController] Webhook captured payment missing email. Skipping role progression.");
-                    return ResponseEntity.ok("Payment captured but email missing");
-                }
+                // The order id alone identifies our donation: a missing payer email must NOT leave it
+                // stuck on PROCESSING (processVerifiedDonation only needs the email for unknown orders).
 
                 long amountInPaise = paymentEntity.get("amount").asLong();
                 java.math.BigDecimal amount = java.math.BigDecimal.valueOf(amountInPaise)
@@ -88,9 +82,17 @@ public class RazorpayWebhookController {
                         : "{}";
 
                 donationService.processVerifiedDonation(payerEmail, amount, transactionId, gatewayOrderId, metadata);
-                log.info("[RazorpayWebhookController] Successfully verified and processed payment.captured for event ID: {}", eventId);
+                log.info("[RazorpayWebhookController] Processed {} for event ID: {}", event, eventId);
             } else {
-                log.info("[RazorpayWebhookController] Ignored non-payment.captured event type: {}", event);
+                log.info("[RazorpayWebhookController] Ignored event type: {}", event);
+            }
+
+            // Record the event ONLY after it was handled. Recording it first meant a failed attempt was
+            // treated as a duplicate on Razorpay's retry, so the donation stayed PROCESSING forever.
+            try {
+                processedWebhookEventRepository.save(new ProcessedWebhookEvent(eventId));
+            } catch (org.springframework.dao.DataIntegrityViolationException dup) {
+                log.warn("[RazorpayWebhookController] Event {} was recorded concurrently", eventId);
             }
 
             return ResponseEntity.ok("Webhook processed successfully");

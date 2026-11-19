@@ -16,7 +16,12 @@ public interface DonationRepository extends JpaRepository<Donation, Long> {
 
     Page<Donation> findByStatus(DonationStatus status, Pageable pageable);
 
+    List<Donation> findByStatusOrderByCreatedAtDesc(DonationStatus status, Pageable pageable);
+
     Optional<Donation> findByGatewayOrderId(String gatewayOrderId);
 
     Optional<Donation> findByReceiptUuid(String receiptUuid);
+
+    /** Donations still waiting on a gateway outcome (used by the payment reconciliation job). */
+    List<Donation> findByStatusAndGatewayOrderIdIsNotNullAndCreatedAtBefore(DonationStatus status, java.time.LocalDateTime before);
 }

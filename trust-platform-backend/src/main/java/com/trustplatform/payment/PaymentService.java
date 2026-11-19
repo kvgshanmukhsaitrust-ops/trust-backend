@@ -120,7 +120,19 @@ public class PaymentService {
             return;
         }
 
-        boolean isMock = request.getRazorpayOrderId() != null && request.getRazorpayOrderId().startsWith("order_mock_");
+        // SECURITY: the signed order must be the order WE created for THIS donation.
+        // Without this check a valid (order, payment, signature) triple from a cheap
+        // payment could be replayed to mark an unrelated, larger donation as paid.
+        if (request.getRazorpayOrderId() == null
+                || donation.getGatewayOrderId() == null
+                || !java.security.MessageDigest.isEqual(
+                        donation.getGatewayOrderId().getBytes(StandardCharsets.UTF_8),
+                        request.getRazorpayOrderId().getBytes(StandardCharsets.UTF_8))) {
+            log.error("[PaymentService] Order id mismatch on verify for donation id={}", donation.getId());
+            throw new com.trustplatform.exception.BadRequestException("Payment order does not match this donation");
+        }
+
+        boolean isMock = request.getRazorpayOrderId().startsWith("order_mock_");
 
         if (isMock) {
             if (paymentSimulator == null) {

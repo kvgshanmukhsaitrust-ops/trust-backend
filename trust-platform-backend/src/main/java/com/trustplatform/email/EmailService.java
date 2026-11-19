@@ -48,8 +48,9 @@ public class EmailService {
         if (mailSender instanceof JavaMailSenderImpl) {
             resolvedHost = ((JavaMailSenderImpl) mailSender).getHost();
         }
-        String pwdPrefix = (mailPassword != null && mailPassword.trim().length() >= 6) ? mailPassword.trim().substring(0, 6) : "none";
-        int pwdLength = (mailPassword != null) ? mailPassword.trim().length() : 0;
+        if (to == null || to.isBlank()) {
+            throw new IllegalArgumentException("Cannot send email: recipient address is empty");
+        }
         boolean isBrevoApiKey = mailPassword != null && mailPassword.trim().startsWith("xkeysib-");
 
         // If password is a Brevo REST API key (starts with xkeysib-), bypass SMTP completely and send via HTTPS API (Port 443)
@@ -65,12 +66,13 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(mailFrom);
-            helper.setTo(to);
+            // Use the configured sender address (with display name); the SMTP username is not always an address
+            String sender = (fromEmail != null && fromEmail.contains("@")) ? fromEmail.trim() : mailFrom;
+            helper.setFrom(sender, fromName != null ? fromName.trim() : "KVG Sai Charitable Trust");
+            helper.setTo(to.trim());
             helper.setSubject(subject);
 
-            // Dynamically check if the body contains HTML tags to set contentType accordingly
-            boolean isHtml = body.contains("<p>") || body.contains("<html>") || body.contains("<h2>") || body.contains("</a>");
+            boolean isHtml = looksLikeHtml(body);
             helper.setText(body, isHtml);
 
             mailSender.send(message);
@@ -91,7 +93,7 @@ public class EmailService {
             conn.setRequestProperty("content-type", "application/json");
             conn.setDoOutput(true);
 
-            boolean isHtml = body.contains("<p>") || body.contains("<html>") || body.contains("<h2>") || body.contains("</a>");
+            boolean isHtml = looksLikeHtml(body);
 
             // Construct JSON payload securely using centralized sender properties
             String escapedFromEmail = (fromEmail != null && fromEmail.contains("@")) ? fromEmail.trim() : "kvgshanmukhsaitrust@gmail.com";
@@ -104,8 +106,8 @@ public class EmailService {
             String escapedSubject = escapeJson(subject);
 
             String jsonPayload = "{"
-                + "\"sender\":{\"name\":\"" + escapeJson(escapedFromName) + "\",\"email\":\"" + escapedFromEmail + "\"},"
-                + "\"to\":[{\"email\":\"" + to.trim() + "\"}],"
+                + "\"sender\":{\"name\":\"" + escapeJson(escapedFromName) + "\",\"email\":\"" + escapeJson(escapedFromEmail) + "\"},"
+                + "\"to\":[{\"email\":\"" + escapeJson(to.trim()) + "\"}],"
                 + "\"subject\":\"" + escapedSubject + "\","
                 + (isHtml ? "\"htmlContent\":\"" + escapedBody + "\"" : "\"textContent\":\"" + escapedBody + "\"")
                 + "}";
@@ -136,6 +138,14 @@ public class EmailService {
             log.error("Failed to send email synchronously via Brevo HTTP API to: {}", to, e);
             throw e;
         }
+    }
+
+    private static final java.util.regex.Pattern HTML_TAG =
+            java.util.regex.Pattern.compile("<\\s*(html|body|div|p|table|h[1-6]|a|br|strong|span)\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /** True when the body is an HTML document/fragment (matches tags with attributes too, e.g. {@code <html lang="en">}). */
+    private static boolean looksLikeHtml(String body) {
+        return body != null && HTML_TAG.matcher(body).find();
     }
 
     private String escapeJson(String s) {

@@ -9,3 +9,12 @@
 *.ipr
 .vscode/
 bin/
+
+### Donor data & runtime artefacts (contains personal data — never commit) ###
+trust-platform-backend/receipts/
+trust-platform-backend/uploads/
+/receipt-*.pdf
+/diag_*.txt
+/don_*.txt
+/don_payload.json
+/order_res_*.txt

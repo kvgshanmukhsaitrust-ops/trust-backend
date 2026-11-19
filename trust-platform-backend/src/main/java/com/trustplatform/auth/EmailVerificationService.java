@@ -48,11 +48,6 @@ public class EmailVerificationService {
         String verificationLink =
                 backendBaseUrl + "/api/auth/verify?token=" + tokenValue;
 
-        System.out.println("==================================================");
-        System.out.println("EMAIL VERIFICATION LINK GENERATED FOR " + user.getEmail() + ":");
-        System.out.println(verificationLink);
-        System.out.println("==================================================");
-
         String message = emailTemplateBuilder.buildVerificationEmail(user.getFullName(), verificationLink);
 
         try {
