@@ -64,6 +64,13 @@ public class PaymentService {
 
         validateDonationOwnership(donation);
 
+        // Only a fresh donation may get an order. Donation ids are sequential, so without this anyone could call
+        // create-order for another donor's in-flight donation and replace its order id: their genuine payment would
+        // then fail verification and the donation would stay PROCESSING.
+        if (donation.getStatus() != DonationStatus.PENDING) {
+            throw new com.trustplatform.exception.BadRequestException("This donation can no longer start a new payment");
+        }
+
         String orderId;
         boolean isSandbox = "dev_razorpay_key".equals(keyId) || "dummy".equals(keyId) || keyId == null || keyId.trim().isEmpty();
         // Sandbox checkout simulation mode check
@@ -120,7 +127,19 @@ public class PaymentService {
             return;
         }
 
-        boolean isMock = request.getRazorpayOrderId() != null && request.getRazorpayOrderId().startsWith("order_mock_");
+        // SECURITY: the signed order must be the order WE created for THIS donation.
+        // Without this check a valid (order, payment, signature) triple from a cheap
+        // payment could be replayed to mark an unrelated, larger donation as paid.
+        if (request.getRazorpayOrderId() == null
+                || donation.getGatewayOrderId() == null
+                || !java.security.MessageDigest.isEqual(
+                        donation.getGatewayOrderId().getBytes(StandardCharsets.UTF_8),
+                        request.getRazorpayOrderId().getBytes(StandardCharsets.UTF_8))) {
+            log.error("[PaymentService] Order id mismatch on verify for donation id={}", donation.getId());
+            throw new com.trustplatform.exception.BadRequestException("Payment order does not match this donation");
+        }
+
+        boolean isMock = request.getRazorpayOrderId().startsWith("order_mock_");
 
         if (isMock) {
             if (paymentSimulator == null) {
@@ -129,6 +148,9 @@ public class PaymentService {
             log.info("[PaymentService] Verifying mock order sandbox transaction: {}", request.getRazorpayOrderId());
             donation.setPaymentMethod("Card (Sandbox)");
         } else {
+            if (keySecret == null || keySecret.isBlank() || "dummy".equals(keySecret)) {
+                throw new com.trustplatform.exception.BadRequestException("Payment gateway is not configured");
+            }
             // Real cryptographic signature validation using constant-time comparison
             String payload = request.getRazorpayOrderId() + "|" + request.getRazorpayPaymentId();
             String generatedSignature = hmacSha256Hex(payload, keySecret);

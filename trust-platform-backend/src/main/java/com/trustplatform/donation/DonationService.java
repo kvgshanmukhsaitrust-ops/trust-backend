@@ -31,6 +31,8 @@ public class DonationService {
     private final NotificationService notificationService;
     private final AuditService auditService;
     private final com.trustplatform.user.UserRepository userRepository;
+    private final com.trustplatform.email.EmailService emailService;
+    private final com.trustplatform.email.EmailTemplateBuilder emailTemplateBuilder;
 
     // =========================================
     // CREATE DONATION (anonymous)
@@ -160,6 +162,23 @@ public class DonationService {
     }
 
     private void triggerSuccessNotifications(Donation donation) {
+        // Receipt email: this path (webhook / reconciliation / admin override) used to send none, so a donor
+        // whose payment was confirmed this way never received a receipt.
+        try {
+            if (donation.getDonorEmail() != null && !donation.getDonorEmail().isBlank()) {
+                String dateStr = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                        .format(donation.getCreatedAt() != null ? donation.getCreatedAt() : java.time.LocalDateTime.now());
+                String body = emailTemplateBuilder.buildDonationSuccessEmail(
+                        donation.getDonorName() != null ? donation.getDonorName() : "Donor",
+                        donation.getReceiptNumber(),
+                        donation.getAmount().doubleValue(),
+                        dateStr,
+                        String.valueOf(donation.getId()));
+                emailService.sendEmail(donation.getDonorEmail(), "Donation Receipt Confirmation - KVGS Sai Trust", body);
+            }
+        } catch (Exception e) {
+            log.error("[DonationService] Receipt email dispatch failed: {}", e.getMessage());
+        }
         try {
             notificationService.sendToAdmins("Donation Confirmed",
                     "₹" + donation.getAmount() + " from " + donation.getDonorName(), "DONATION");
@@ -226,6 +245,10 @@ public class DonationService {
         }
 
         if (donation == null) {
+            if (payerEmail == null || payerEmail.isBlank()) {
+                // Cannot attribute a payment we have no record of and no email for: surface it, don't swallow it
+                throw new IllegalStateException("Captured payment " + transactionId + " matches no donation and has no payer email");
+            }
             donation = new Donation();
             donation.setAmount(amount);
             donation.setDonorName("Donor (" + payerEmail + ")");
@@ -249,6 +272,7 @@ public class DonationService {
                 donation.setTransactionId(transactionId);
                 donation.setReceiptNumber("REC-" + System.currentTimeMillis());
                 donation.setPaymentMethod("Razorpay Webhook");
+                donation.setGatewayResponse("WEBHOOK_CONFIRMED_CAPTURED");
             } else {
                 log.info("[DonationService] Webhook duplicate check: Donation id={} is already SUCCESS. Skipping processing.", donation.getId());
                 return;
@@ -258,15 +282,30 @@ public class DonationService {
         donationRepository.save(donation);
 
         // Automated donor role progression upgrade logic
-        userRepository.findByEmail(payerEmail).ifPresent(user -> {
-            if (user.getRole() == com.trustplatform.user.Role.USER) {
-                user.setRole(com.trustplatform.user.Role.DONOR);
-                userRepository.save(user);
-                log.info("[DonationService] User {} successfully upgraded to DONOR", payerEmail);
-            }
-        });
+        String roleEmail = (payerEmail != null && !payerEmail.isBlank()) ? payerEmail : donation.getDonorEmail();
+        if (roleEmail != null) {
+            userRepository.findByEmail(roleEmail).ifPresent(user -> {
+                if (user.getRole() == com.trustplatform.user.Role.USER) {
+                    user.setRole(com.trustplatform.user.Role.DONOR);
+                    userRepository.save(user);
+                    log.info("[DonationService] User {} successfully upgraded to DONOR", roleEmail);
+                }
+            });
+        }
 
         triggerSuccessNotifications(donation);
+    }
+
+    /** Checkout was opened but never paid: stop showing it as PROCESSING. */
+    @Transactional
+    public void markAbandoned(Long donationId) {
+        donationRepository.findById(donationId).ifPresent(d -> {
+            if (d.getStatus() == DonationStatus.PROCESSING) {
+                d.setStatus(DonationStatus.FAILED);
+                d.setErrorDetails("Checkout was not completed");
+                donationRepository.save(d);
+            }
+        });
     }
 
     public Donation getDonationByReceiptUuid(String receiptUuid) {

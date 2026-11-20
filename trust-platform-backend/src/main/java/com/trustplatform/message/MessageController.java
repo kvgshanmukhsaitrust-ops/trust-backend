@@ -26,7 +26,19 @@ public class MessageController {
     }
 
     @PostMapping
-    public ContactMessage submitMessage(@RequestBody ContactMessage message) {
+    public ContactMessage submitMessage(@RequestBody ContactMessage submitted) {
+        // Copy only the fields a visitor may set (binding the entity directly let callers set id/read/deleted/createdAt)
+        String email = submitted.getEmail() == null ? "" : submitted.getEmail().trim();
+        if (email.length() > 254 || !email.matches("^[^\\s@<>\",;]+@[^\\s@<>\",;]+\\.[^\\s@<>\",;]+$")) {
+            throw new com.trustplatform.exception.BadRequestException("A valid email address is required");
+        }
+        if (submitted.getMessage() == null || submitted.getMessage().isBlank()) {
+            throw new com.trustplatform.exception.BadRequestException("Message cannot be empty");
+        }
+        ContactMessage message = new ContactMessage();
+        message.setEmail(email);
+        message.setName(submitted.getName() == null ? null : submitted.getName().trim().substring(0, Math.min(submitted.getName().trim().length(), 120)));
+        message.setMessage(submitted.getMessage().length() > 5000 ? submitted.getMessage().substring(0, 5000) : submitted.getMessage());
         ContactMessage saved = repository.save(message);
 
         // Send acknowledgement email asynchronously

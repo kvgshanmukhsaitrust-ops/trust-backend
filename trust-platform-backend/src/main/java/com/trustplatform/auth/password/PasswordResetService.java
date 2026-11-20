@@ -49,8 +49,11 @@ public class PasswordResetService {
     @Transactional
     public void requestPasswordReset(ForgotPasswordRequest request, String origin) {
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        // Do not reveal whether an address is registered (account enumeration): answer the same either way
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (user == null) {
+            return;
+        }
 
         String token = UUID.randomUUID().toString();
 
@@ -63,14 +66,21 @@ public class PasswordResetService {
 
         tokenRepository.save(resetToken);
 
-        String frontendBaseUrl = (origin != null && !origin.trim().isEmpty()) ? origin : getRedirectBaseUrl();
+        // SECURITY: the link in the email is only ever built on OUR configured site. Trusting the request's
+        // Origin header would let anyone request a reset for a victim and receive a link to their own domain.
+        String frontendBaseUrl = getRedirectBaseUrl();
+        if (origin != null && !origin.isBlank() && frontendUrl != null) {
+            String wanted = origin.trim().replaceAll("/+$", "");
+            for (String allowed : frontendUrl.split(",")) {
+                if (wanted.equalsIgnoreCase(allowed.trim().replaceAll("/+$", ""))) {
+                    frontendBaseUrl = wanted;
+                    break;
+                }
+            }
+        }
         String resetLink =
                 frontendBaseUrl + "/forgot-password?token=" + token;
-
-        System.out.println("==================================================");
-        System.out.println("PASSWORD RESET LINK GENERATED FOR " + user.getEmail() + ":");
-        System.out.println(resetLink);
-        System.out.println("==================================================");
+        // (The reset link is a credential: it must never be written to the logs.)
 
         String emailBody =
                 emailTemplateBuilder.buildPasswordResetEmail(

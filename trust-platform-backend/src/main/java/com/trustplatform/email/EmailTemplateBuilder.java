@@ -17,6 +17,17 @@ public class EmailTemplateBuilder {
         return "http://localhost:5173";
     }
 
+    /** Escapes user-supplied text before it goes into an HTML email (stops HTML/link injection in our branded mails). */
+    private static String esc(String s) {
+        return s == null ? "" : org.springframework.web.util.HtmlUtils.htmlEscape(s);
+    }
+
+    private static String esc(String s, int maxLen) {
+        if (s == null) return "";
+        String t = s.length() > maxLen ? s.substring(0, maxLen) + "…" : s;
+        return org.springframework.web.util.HtmlUtils.htmlEscape(t);
+    }
+
     private String buildTemplate(String name, String contentHtml, String ctaText, String ctaUrl) {
         String base = getFrontendUrl();
         String ctaHtml = "";
@@ -143,7 +154,7 @@ public class EmailTemplateBuilder {
                   </div>
                 </body>
                 </html>
-                """.formatted(base, name, contentHtml, ctaHtml, base);
+                """.formatted(base, esc(name, 120), contentHtml, ctaHtml, base);
     }
 
     // ===============================
@@ -174,7 +185,7 @@ public class EmailTemplateBuilder {
                   </table>
                 </div>
                 <p>A printable PDF copy of your formal receipt is also attached to your account profile.</p>
-                """.formatted(donationId, receiptNumber, String.format("%,.2f", amount), date);
+                """.formatted(esc(donationId), esc(receiptNumber), String.format("%,.2f", amount), esc(date));
         return buildTemplate(donorName, content, "View Account", getFrontendUrl() + "/dashboard");
     }
 
@@ -186,7 +197,7 @@ public class EmailTemplateBuilder {
                 <p>Congratulations! Your volunteer application to participate in the event <strong>"%s"</strong> has been approved.</p>
                 <p>We look forward to your valuable participation. Our team will share further event details and schedule shortly.</p>
                 <p>Thank you for stepping forward to make a difference in our community!</p>
-                """.formatted(eventTitle);
+                """.formatted(esc(eventTitle, 200));
         return buildTemplate(volunteerName, content, "View Dashboard", getFrontendUrl() + "/dashboard/volunteer");
     }
 
@@ -198,7 +209,7 @@ public class EmailTemplateBuilder {
                 <p>Thank you for your interest in volunteering for the event <strong>"%s"</strong>.</p>
                 <p>We received many high-quality applications and unfortunately, we are unable to accept your application at this time due to capacity limits.</p>
                 <p>We sincerely appreciate your support and hope to have you join us for future initiatives.</p>
-                """.formatted(eventTitle);
+                """.formatted(esc(eventTitle, 200));
         return buildTemplate(volunteerName, content, "Explore Events", getFrontendUrl() + "/events");
     }
 
@@ -332,7 +343,7 @@ public class EmailTemplateBuilder {
                   Status: Completed Successfully
                 </div>
                 <p><strong>Security Advice:</strong> If you did not authorize this change, please reset your password immediately using the Forgot Password flow, or contact our support team at <a href="mailto:kvgshanmukhsaitrust@gmail.com">kvgshanmukhsaitrust@gmail.com</a>.</p>
-                """.formatted(date);
+                """.formatted(esc(date));
         return buildTemplate(name, content, "Secure Account", getFrontendUrl() + "/login");
     }
 
@@ -346,7 +357,7 @@ public class EmailTemplateBuilder {
                   &ldquo;%s&rdquo;
                 </div>
                 <p>Thank you for reaching out to us. We appreciate your interest and support.</p>
-                """.formatted(originalMessage);
+                """.formatted(esc(originalMessage, 1500));
         return buildTemplate(name, content, null, null);
     }
 
@@ -362,7 +373,7 @@ public class EmailTemplateBuilder {
                   Status: <strong>PENDING REVIEW</strong>
                 </div>
                 <p>Our officers will review your case and supporting documents. You can track progress or submit messages directly on your dashboard.</p>
-                """.formatted(category, caseNumber, category);
+                """.formatted(esc(category), esc(caseNumber), esc(category));
         return buildTemplate(name, content, "Track Status", getFrontendUrl() + "/dashboard/applicant");
     }
 
@@ -370,7 +381,7 @@ public class EmailTemplateBuilder {
     // CASE UPDATED EMAIL
     // ===============================
     public String buildCaseUpdatedEmail(String name, String caseNumber, String oldStatus, String newStatus, String comment) {
-        String note = (comment != null && !comment.trim().isEmpty()) ? "<br>Notes: <em>" + comment + "</em>" : "";
+        String note = (comment != null && !comment.trim().isEmpty()) ? "<br>Notes: <em>" + esc(comment, 1000) + "</em>" : "";
         String content = """
                 <p>Your assistance application status has been updated.</p>
                 <div style="background-color: #f7f9fc; border-left: 4px solid #B07A3F; padding: 12px; margin: 20px 0; border-radius: 0 8px 8px 0;">
@@ -378,7 +389,7 @@ public class EmailTemplateBuilder {
                   Status: <strong>%s</strong> (previously %s)%s
                 </div>
                 <p>Please log in to your dashboard to review any actions requested or view next steps.</p>
-                """.formatted(caseNumber, newStatus, oldStatus, note);
+                """.formatted(esc(caseNumber), esc(newStatus), esc(oldStatus), note);
         return buildTemplate(name, content, "View Case Dashboard", getFrontendUrl() + "/dashboard/applicant");
     }
 }
