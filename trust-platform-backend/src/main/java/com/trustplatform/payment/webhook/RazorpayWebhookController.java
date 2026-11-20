@@ -28,6 +28,12 @@ public class RazorpayWebhookController {
             @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
             @RequestBody String payload) {
 
+        // Fail closed: with the placeholder secret anyone could compute a valid signature and forge "paid" events
+        if (webhookSecret == null || webhookSecret.isBlank() || "dummy_secret".equals(webhookSecret)) {
+            log.error("[RazorpayWebhookController] RAZORPAY_WEBHOOK_SECRET is not configured: webhook rejected");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Webhook not configured");
+        }
+
         if (signature == null || signature.trim().isEmpty()) {
             log.error("[RazorpayWebhookController] Webhook signature missing in headers");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Signature missing");

@@ -27,6 +27,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+// SECURITY: this seeds demo accounts with well-known passwords (admin123 ...) and RESETS them on every start.
+// It must never run in production.
+@org.springframework.context.annotation.Profile("!prod")
 @Component
 public class DataInitializer implements CommandLineRunner {
 

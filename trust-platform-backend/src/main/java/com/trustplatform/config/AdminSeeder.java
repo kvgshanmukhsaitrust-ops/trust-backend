@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+// SECURITY: creates admin@trust.org / admin123 (and prints it). Development only.
+@org.springframework.context.annotation.Profile("!prod")
 @Configuration
 public class AdminSeeder {
 

@@ -87,6 +87,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (uri.equals("/api/media/upload") && "POST".equalsIgnoreCase(method)) {
             return true;
         }
+        // Public mail-triggering / payment-confirming endpoints: stop automated abuse
+        if (uri.equals("/api/messages") && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
+        if (uri.equals("/api/payments/verify") && "POST".equalsIgnoreCase(method)) {
+            return true;
+        }
         return false;
     }
 
@@ -102,6 +109,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
         if (uri.equals("/api/media/upload") && "POST".equalsIgnoreCase(method)) {
             return "UPLOAD";
+        }
+        if (uri.equals("/api/messages")) {
+            return "CONTACT"; // own bucket (default capacity) so it never eats a visitor's login attempts
+        }
+        if (uri.equals("/api/payments/verify")) {
+            return "VERIFY";
         }
         return "AUTH";
     }
